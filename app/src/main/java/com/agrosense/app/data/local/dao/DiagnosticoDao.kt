@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.agrosense.app.data.local.entity.Diagnostico
 import kotlinx.coroutines.flow.Flow
 
@@ -16,6 +17,9 @@ interface DiagnosticoDao {
 
     @Delete
     suspend fun eliminar(diagnostico: Diagnostico)
+
+    @Update
+    suspend fun actualizar(diagnostico: Diagnostico)
 
     @Query("""
         SELECT * FROM diagnosticos

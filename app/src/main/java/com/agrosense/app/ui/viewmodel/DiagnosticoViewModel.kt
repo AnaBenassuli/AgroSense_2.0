@@ -27,6 +27,12 @@ class DiagnosticoViewModel(
         }
     }
 
+    fun actualizarDiagnostico(diagnostico: Diagnostico) {
+        viewModelScope.launch {
+            repository.actualizarDiagnostico(diagnostico)
+        }
+    }
+
     suspend fun obtenerUltimo(parcelaId: Long): Diagnostico? {
         return repository.obtenerUltimo(parcelaId)
     }

@@ -16,6 +16,10 @@ class DiagnosticoRepository(
         diagnosticoDao.eliminar(diagnostico)
     }
 
+    suspend fun actualizarDiagnostico(diagnostico: Diagnostico) {
+        diagnosticoDao.actualizar(diagnostico)
+    }
+
     fun observarPorParcela(parcelaId: Long): Flow<List<Diagnostico>> {
         return diagnosticoDao.observarPorParcela(parcelaId)
     }
