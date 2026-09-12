@@ -151,20 +151,27 @@ com.agrosense.app
 - [x] Type Converters
 - [x] Database Provider
 - [x] Compilación inicial exitosa
-- [ ] Repositories
-- [ ] ViewModels
-- [ ] Integración UI ↔ datos
+- [x] Repositories
+- [x] ViewModels
+- [x] Integración UI ↔ datos
 
 ### Aplicación
 
-- [ ] Login
+- [x] Login
 - [ ] Registro de usuario
-- [ ] Dashboard
-- [ ] Gestión de parcelas
-- [ ] Registro de actividades
+- [x] Dashboard
+- [x] Gestión de parcelas
+- [x] Registro de actividades
 - [ ] Visualización de sensores
-- [ ] Diagnósticos
+- [x] Diagnósticos
 - [ ] Predicciones
+
+### Pendientes conocidos
+
+- El modelo `agrosense_crop_model.tflite` todavía no está en `app/src/main/assets/`; sin él la pantalla de captura avisa y no clasifica. El modelo y su `labels.txt` salen juntos de la sección 8 del notebook `AgroSense_modelo_cultivos.ipynb`, y deben copiarse juntos: el orden de las etiquetas tiene que coincidir con el orden de salida del modelo, porque el clasificador resuelve los nombres por índice y un archivo desalineado no falla, simplemente etiqueta mal cada diagnóstico. Por eso no se escribió a mano ese archivo.
+- `Parcela` no tiene `usuarioId`: la relación Usuario → Parcela del diagrama no existe aún en el esquema.
+- El acceso es local (SharedPreferences), no contra la tabla `usuarios`.
+- La verificación en dispositivo real sigue pendiente: la puerta de calidad de esta migración fue `assembleDebug` + `lintDebug` y pruebas unitarias, pero la app todavía no se corrió en un teléfono físico, así que el flujo de punta a punta no está verificado.
 
 ---
 
