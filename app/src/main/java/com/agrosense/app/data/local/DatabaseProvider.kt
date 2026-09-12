@@ -10,15 +10,15 @@ object DatabaseProvider {
 
     fun getDatabase(context: Context): AgroSenseDatabase {
         return INSTANCE ?: synchronized(this) {
-
-            val instance = Room.databaseBuilder(
-                context.applicationContext,
-                AgroSenseDatabase::class.java,
-                "agrosense.db"
-            ).build()
-
-            INSTANCE = instance
-            instance
+            INSTANCE ?: buildDatabase(context).also { INSTANCE = it }
         }
+    }
+
+    private fun buildDatabase(context: Context): AgroSenseDatabase {
+        return Room.databaseBuilder(
+            context.applicationContext,
+            AgroSenseDatabase::class.java,
+            "agrosense.db"
+        ).build()
     }
 }

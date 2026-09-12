@@ -119,7 +119,7 @@ fun ResultadoDiagnosticoScreen(navController: NavController, diagnosticoId: Long
                             Spacer(Modifier.height(12.dp))
                             Text("Otras posibilidades", style = MaterialTheme.typography.titleSmall)
                             Spacer(Modifier.height(4.dp))
-                            alternativas.forEach { prediccion ->
+                            alternativas.drop(1).forEach { prediccion ->
                                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -208,5 +208,3 @@ fun ResultadoDiagnosticoScreen(navController: NavController, diagnosticoId: Long
         }
     }
 }
-
-internal fun porcentaje(valor: Float): String = "%.1f%%".format(valor * 100)

@@ -122,5 +122,14 @@ data class ClassificationResult(
     }
 }
 
+/**
+ * Confianza como texto para mostrar en pantalla, p. ej. "91.2%".
+ *
+ * Fijo en Locale.US a propósito: en un teléfono en español el separador
+ * decimal por defecto es la coma, y eso desalinearía este texto con el de
+ * [Prediccion.porcentaje], que usa el mismo formato.
+ */
+fun porcentaje(valor: Float): String = String.format(Locale.US, "%.1f%%", valor * 100)
+
 /** Confianza como texto para mostrar en pantalla, p. ej. "91.2%". */
-fun Prediccion.porcentaje(): String = String.format(Locale.US, "%.1f%%", confianza * 100)
+fun Prediccion.porcentaje(): String = porcentaje(confianza)

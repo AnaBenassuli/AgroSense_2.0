@@ -31,6 +31,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.agrosense.app.data.local.entity.Diagnostico
+import com.agrosense.app.ml.porcentaje
 import com.agrosense.app.navigation.Route
 import com.agrosense.app.ui.viewmodel.DiagnosticoViewModel
 import com.agrosense.app.ui.viewmodel.agroSenseViewModelFactory
@@ -44,8 +45,8 @@ fun HistorialDiagnosticosScreen(navController: NavController, parcelaId: Long) {
     val context = LocalContext.current
     val diagnosticoViewModel: DiagnosticoViewModel = viewModel(factory = agroSenseViewModelFactory(context))
 
-    val diagnosticos by diagnosticoViewModel.observarPorParcela(parcelaId)
-        .collectAsStateWithLifecycle(emptyList())
+    val flujoDiagnosticos = remember(parcelaId) { diagnosticoViewModel.observarPorParcela(parcelaId) }
+    val diagnosticos by flujoDiagnosticos.collectAsStateWithLifecycle(emptyList())
 
     // Dentro de remember y no en una constante: el idioma puede cambiar con la
     // app abierta, y al hacerlo Android recrea la Activity y esto se reevalúa.

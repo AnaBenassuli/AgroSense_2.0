@@ -7,9 +7,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -53,8 +54,8 @@ fun RegistroActividadesScreen(navController: NavController, parcelaId: Long) {
     val context = LocalContext.current
     val actividadViewModel: ActividadViewModel = viewModel(factory = agroSenseViewModelFactory(context))
 
-    val actividades by actividadViewModel.observarPorParcela(parcelaId)
-        .collectAsStateWithLifecycle(emptyList())
+    val flujoActividades = remember(parcelaId) { actividadViewModel.observarPorParcela(parcelaId) }
+    val actividades by flujoActividades.collectAsStateWithLifecycle(emptyList())
 
     var tipo by remember { mutableStateOf(TIPOS_ACTIVIDAD.first()) }
     var desplegado by remember { mutableStateOf(false) }
@@ -69,6 +70,8 @@ fun RegistroActividadesScreen(navController: NavController, parcelaId: Long) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
             .padding(16.dp)
     ) {
         Text("Actividades", style = MaterialTheme.typography.headlineSmall)
@@ -161,8 +164,11 @@ fun RegistroActividadesScreen(navController: NavController, parcelaId: Long) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(actividades, key = { it.id }) { actividad ->
+            // Column en vez de LazyColumn: el contenedor ya es scrollable
+            // (verticalScroll más arriba) y anidar una lista perezosa dentro
+            // de un scroll de alto infinito revienta en tiempo de ejecución.
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                actividades.forEach { actividad ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)

@@ -21,6 +21,14 @@ class DiagnosticoViewModel(
         }
     }
 
+    /**
+     * Variante de [registrarDiagnostico] que devuelve el id de la fila
+     * insertada, para pantallas que necesitan navegar al diagnóstico recién
+     * creado (p. ej. CapturaDiagnosticoScreen).
+     */
+    suspend fun registrarYDevolverId(diagnostico: Diagnostico): Long =
+        repository.registrarDiagnostico(diagnostico)
+
     fun eliminarDiagnostico(diagnostico: Diagnostico) {
         viewModelScope.launch {
             repository.eliminarDiagnostico(diagnostico)

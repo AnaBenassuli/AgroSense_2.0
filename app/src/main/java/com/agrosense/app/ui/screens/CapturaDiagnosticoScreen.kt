@@ -2,6 +2,7 @@ package com.agrosense.app.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,7 +17,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -36,14 +39,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.agrosense.app.data.local.entity.Diagnostico
-import com.agrosense.app.di.AppModule
 import com.agrosense.app.local.ImagenStorage
 import com.agrosense.app.ml.ImageClassifier
 import com.agrosense.app.navigation.Route
 import com.agrosense.app.ui.components.CameraPreview
+import com.agrosense.app.ui.viewmodel.DiagnosticoViewModel
+import com.agrosense.app.ui.viewmodel.agroSenseViewModelFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -59,6 +64,7 @@ import kotlinx.coroutines.withContext
 fun CapturaDiagnosticoScreen(navController: NavController, parcelaId: Long) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val diagnosticoViewModel: DiagnosticoViewModel = viewModel(factory = agroSenseViewModelFactory(context))
 
     val clasificador = remember(context) { ImageClassifier(context) }
     DisposableEffect(clasificador) {
@@ -80,31 +86,48 @@ fun CapturaDiagnosticoScreen(navController: NavController, parcelaId: Long) {
                 if (bitmap == null) null else clasificador.classify(bitmap)
             }
 
-            analizando = false
-
             when {
-                resultado == null ->
+                resultado == null -> {
                     mensaje = "No se pudo leer la foto."
+                    analizando = false
+                }
 
-                !clasificador.disponible ->
+                !clasificador.disponible -> {
                     mensaje = "El modelo de diagnóstico todavía no está instalado " +
                         "(falta ${ImageClassifier.MODELO} en assets)."
+                    analizando = false
+                }
 
-                !resultado.esValido ->
+                !resultado.esValido -> {
                     mensaje = "El modelo no reconoció nada en esta foto. Intenta " +
                         "con la hoja más cerca y bien iluminada."
+                    analizando = false
+                }
 
                 else -> {
-                    val id = AppModule.diagnosticoRepository(context).registrarDiagnostico(
-                        Diagnostico(
-                            parcelaId = parcelaId,
-                            imagenRuta = uri,
-                            resultado = resultado.label,
-                            confianza = resultado.confidence,
-                            top3 = resultado.top3
-                        )
-                    )
-                    navController.navigate(Route.ResultadoDiagnostico.create(id))
+                    val resultadoEscritura = runCatching {
+                        withContext(Dispatchers.IO) {
+                            diagnosticoViewModel.registrarYDevolverId(
+                                Diagnostico(
+                                    parcelaId = parcelaId,
+                                    imagenRuta = uri,
+                                    resultado = resultado.label,
+                                    confianza = resultado.confidence,
+                                    top3 = resultado.top3
+                                )
+                            )
+                        }
+                    }
+
+                    analizando = false
+
+                    resultadoEscritura
+                        .onSuccess { id ->
+                            navController.navigate(Route.ResultadoDiagnostico.create(id))
+                        }
+                        .onFailure {
+                            mensaje = "No se pudo guardar el diagnóstico. Intenta nuevamente."
+                        }
                 }
             }
         }
@@ -134,6 +157,8 @@ fun CapturaDiagnosticoScreen(navController: NavController, parcelaId: Long) {
         }
     }
 
+    BackHandler(enabled = mostrandoCamara) { mostrandoCamara = false }
+
     if (mostrandoCamara) {
         CameraPreview(
             onPhotoCaptured = { uri ->
@@ -153,6 +178,7 @@ fun CapturaDiagnosticoScreen(navController: NavController, parcelaId: Long) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
