@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -25,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,6 +38,7 @@ fun ParcelaScreen(
     viewModel: ParcelaViewModel,
     onBackClick: () -> Unit
 ) {
+
     val parcelas by viewModel.parcelas.collectAsState()
 
     var mostrarFormulario by remember {
@@ -57,21 +60,33 @@ fun ParcelaScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(horizontal = 20.dp, vertical = 18.dp)
     ) {
 
-        Text(
-            text = "Mis parcelas",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            TextButton(
+                onClick = onBackClick
+            ) {
+                Text("←")
+            }
+
+            Text(
+                text = "Mis parcelas",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
 
         Spacer(
-            modifier = Modifier.height(6.dp)
+            modifier = Modifier.height(12.dp)
         )
 
         Text(
-            text = "Administra las parcelas y cultivos registrados en AgroSense.",
+            text = "Administra tus cultivos y consulta su información.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -84,20 +99,15 @@ fun ParcelaScreen(
             onClick = {
                 mostrarFormulario = true
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp),
+            shape = RoundedCornerShape(14.dp)
         ) {
-            Text("Agregar parcela")
-        }
-
-        Spacer(
-            modifier = Modifier.height(12.dp)
-        )
-
-        OutlinedButton(
-            onClick = onBackClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Volver al inicio")
+            Text(
+                text = "+ Agregar parcela",
+                style = MaterialTheme.typography.labelLarge
+            )
         }
 
         Spacer(
@@ -108,11 +118,12 @@ fun ParcelaScreen(
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor =
-                        MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             ) {
+
                 Column(
                     modifier = Modifier.padding(20.dp)
                 ) {
@@ -128,7 +139,9 @@ fun ParcelaScreen(
                     )
 
                     Text(
-                        text = "Agrega tu primera parcela para comenzar a registrar diagnósticos y actividades."
+                        text = "Agrega tu primera parcela para comenzar a registrar diagnósticos y actividades.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -136,9 +149,9 @@ fun ParcelaScreen(
         } else {
 
             Text(
-                text = "Parcelas registradas",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                text = "${parcelas.size} parcelas registradas",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(
@@ -146,8 +159,7 @@ fun ParcelaScreen(
             )
 
             LazyColumn(
-                verticalArrangement =
-                    Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
 
                 items(
@@ -160,9 +172,7 @@ fun ParcelaScreen(
                     ParcelaCard(
                         parcela = parcela,
                         onDeleteClick = {
-                            viewModel.eliminarParcela(
-                                parcela
-                            )
+                            viewModel.eliminarParcela(parcela)
                         }
                     )
                 }
@@ -177,8 +187,13 @@ fun ParcelaScreen(
                 mostrarFormulario = false
             },
 
+            shape = RoundedCornerShape(18.dp),
+
             title = {
-                Text("Nueva parcela")
+                Text(
+                    text = "Nueva parcela",
+                    fontWeight = FontWeight.Bold
+                )
             },
 
             text = {
@@ -193,24 +208,8 @@ fun ParcelaScreen(
                         label = {
                             Text("Nombre de la parcela")
                         },
-                        modifier =
-                            Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(12.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = ubicacion,
-                        onValueChange = {
-                            ubicacion = it
-                        },
-                        label = {
-                            Text("Ubicación")
-                        },
-                        modifier =
-                            Modifier.fillMaxWidth()
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
 
                     Spacer(
@@ -225,8 +224,30 @@ fun ParcelaScreen(
                         label = {
                             Text("Cultivo")
                         },
-                        modifier =
-                            Modifier.fillMaxWidth()
+                        placeholder = {
+                            Text("Ej. Maíz")
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = ubicacion,
+                        onValueChange = {
+                            ubicacion = it
+                        },
+                        label = {
+                            Text("Ubicación")
+                        },
+                        placeholder = {
+                            Text("Ej. Chihuahua")
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
@@ -238,22 +259,19 @@ fun ParcelaScreen(
 
                         if (
                             nombre.isNotBlank() &&
-                            ubicacion.isNotBlank() &&
-                            cultivo.isNotBlank()
+                            cultivo.isNotBlank() &&
+                            ubicacion.isNotBlank()
                         ) {
 
                             viewModel.registrarParcela(
-                                nombre =
-                                    nombre.trim(),
-                                ubicacion =
-                                    ubicacion.trim(),
-                                cultivo =
-                                    cultivo.trim()
+                                nombre = nombre.trim(),
+                                ubicacion = ubicacion.trim(),
+                                cultivo = cultivo.trim()
                             )
 
                             nombre = ""
-                            ubicacion = ""
                             cultivo = ""
+                            ubicacion = ""
 
                             mostrarFormulario = false
                         }
@@ -285,9 +303,9 @@ private fun ParcelaCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.primaryContainer
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
 
@@ -295,28 +313,73 @@ private fun ParcelaCard(
             modifier = Modifier.padding(18.dp)
         ) {
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+
+                    Text(
+                        text = parcela.nombre,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(4.dp)
+                    )
+
+                    Text(
+                        text = parcela.cultivo,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+
+                    Text(
+                        text = "Activa",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(
+                            horizontal = 12.dp,
+                            vertical = 7.dp
+                        )
+                    )
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.height(18.dp)
+            )
+
             Text(
-                text = parcela.nombre,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                text = "Ubicación",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(
-                modifier = Modifier.height(8.dp)
+                modifier = Modifier.height(3.dp)
             )
 
             Text(
-                text = "Cultivo: ${parcela.cultivo}",
+                text = parcela.ubicacion,
                 style = MaterialTheme.typography.bodyLarge
             )
 
-            Text(
-                text = "Ubicación: ${parcela.ubicacion}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-
             Spacer(
-                modifier = Modifier.height(14.dp)
+                modifier = Modifier.height(16.dp)
             )
 
             Row(
@@ -327,7 +390,10 @@ private fun ParcelaCard(
                 TextButton(
                     onClick = onDeleteClick
                 ) {
-                    Text("Eliminar")
+                    Text(
+                        text = "Eliminar",
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             }
         }
