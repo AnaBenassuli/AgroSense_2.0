@@ -10,11 +10,13 @@ import com.agrosense.app.data.local.DatabaseProvider
 import com.agrosense.app.data.repository.ActividadRepository
 import com.agrosense.app.data.repository.DiagnosticoRepository
 import com.agrosense.app.data.repository.ParcelaRepository
+import com.agrosense.app.data.repository.UsuarioRepository
 import com.agrosense.app.ui.screen.ActividadScreen
 import com.agrosense.app.ui.screen.DiagnosticoScreen
 import com.agrosense.app.ui.screen.HistorialScreen
 import com.agrosense.app.ui.screen.HomeScreen
 import com.agrosense.app.ui.screen.ParcelaScreen
+import com.agrosense.app.ui.screen.PerfilScreen
 import com.agrosense.app.ui.screen.auth.AuthGate
 import com.agrosense.app.ui.viewmodel.ActividadViewModel
 import com.agrosense.app.ui.viewmodel.ActividadViewModelFactory
@@ -22,6 +24,8 @@ import com.agrosense.app.ui.viewmodel.DiagnosticoViewModel
 import com.agrosense.app.ui.viewmodel.DiagnosticoViewModelFactory
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
 import com.agrosense.app.ui.viewmodel.ParcelaViewModelFactory
+import com.agrosense.app.ui.viewmodel.UsuarioViewModel
+import com.agrosense.app.ui.viewmodel.UsuarioViewModelFactory
 
 @Composable
 fun AppNavigation() {
@@ -30,6 +34,10 @@ fun AppNavigation() {
     val context = LocalContext.current
 
     val database = DatabaseProvider.getDatabase(context)
+
+    // =====================================================
+    // REPOSITORIES
+    // =====================================================
 
     val parcelaRepository = ParcelaRepository(
         database.parcelaDao()
@@ -42,6 +50,14 @@ fun AppNavigation() {
     val actividadRepository = ActividadRepository(
         database.actividadDao()
     )
+
+    val usuarioRepository = UsuarioRepository(
+        database.usuarioDao()
+    )
+
+    // =====================================================
+    // VIEWMODELS
+    // =====================================================
 
     val parcelaViewModel: ParcelaViewModel = viewModel(
         factory = ParcelaViewModelFactory(
@@ -61,17 +77,34 @@ fun AppNavigation() {
         )
     )
 
+    val usuarioViewModel: UsuarioViewModel = viewModel(
+        factory = UsuarioViewModelFactory(
+            usuarioRepository
+        )
+    )
+
+    // =====================================================
+    // NAVIGATION
+    // =====================================================
+
     NavHost(
         navController = navController,
         startDestination = Screen.Login.route
     ) {
 
+        // LOGIN
         composable(Screen.Login.route) {
 
             AuthGate(
                 onAuthenticated = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Login.route) {
+
+                    navController.navigate(
+                        Screen.Home.route
+                    ) {
+
+                        popUpTo(
+                            Screen.Login.route
+                        ) {
                             inclusive = true
                         }
                     }
@@ -79,10 +112,14 @@ fun AppNavigation() {
             )
         }
 
+        // REGISTRO
         composable(Screen.Register.route) {
-            // Por ahora el registro está integrado dentro de AuthGate.
+
+            // El registro actualmente está
+            // integrado dentro de AuthGate.
         }
 
+        // HOME
         composable(Screen.Home.route) {
 
             HomeScreen(
@@ -91,24 +128,34 @@ fun AppNavigation() {
                         Screen.Parcelas.route
                     )
                 },
+
                 onDiagnosticoClick = {
                     navController.navigate(
                         Screen.Diagnostico.route
                     )
                 },
+
                 onHistorialClick = {
                     navController.navigate(
                         Screen.Historial.route
                     )
                 },
+
                 onActividadesClick = {
                     navController.navigate(
                         Screen.Actividades.route
+                    )
+                },
+
+                onPerfilClick = {
+                    navController.navigate(
+                        Screen.Perfil.route
                     )
                 }
             )
         }
 
+        // PARCELAS
         composable(Screen.Parcelas.route) {
 
             ParcelaScreen(
@@ -119,6 +166,7 @@ fun AppNavigation() {
             )
         }
 
+        // DIAGNÓSTICOS
         composable(Screen.Diagnostico.route) {
 
             DiagnosticoScreen(
@@ -130,6 +178,7 @@ fun AppNavigation() {
             )
         }
 
+        // HISTORIAL
         composable(Screen.Historial.route) {
 
             HistorialScreen(
@@ -141,11 +190,23 @@ fun AppNavigation() {
             )
         }
 
+        // ACTIVIDADES
         composable(Screen.Actividades.route) {
 
             ActividadScreen(
                 actividadViewModel = actividadViewModel,
                 parcelaViewModel = parcelaViewModel,
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // PERFIL / USUARIOS
+        composable(Screen.Perfil.route) {
+
+            PerfilScreen(
+                usuarioViewModel = usuarioViewModel,
                 onBackClick = {
                     navController.popBackStack()
                 }

@@ -101,7 +101,7 @@ fun AuthGate(
     ) {
 
         Spacer(
-            modifier = Modifier.height(24.dp)
+            modifier = Modifier.height(34.dp)
         )
 
         AgroSenseLogo(

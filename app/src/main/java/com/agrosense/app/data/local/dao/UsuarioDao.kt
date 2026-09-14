@@ -1,6 +1,7 @@
 package com.agrosense.app.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -11,18 +12,21 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface UsuarioDao {
 
-    @Insert(onConflict = OnConflictStrategy.ABORT)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertar(usuario: Usuario): Long
 
     @Update
     suspend fun actualizar(usuario: Usuario)
 
-    @Query("SELECT * FROM usuarios ORDER BY nombre")
-    fun observarTodos(): Flow<List<Usuario>>
+    @Delete
+    suspend fun eliminar(usuario: Usuario)
 
-    @Query("SELECT * FROM usuarios WHERE correo = :correo LIMIT 1")
-    suspend fun obtenerPorCorreo(correo: String): Usuario?
+    @Query("SELECT * FROM usuarios ORDER BY nombre ASC")
+    fun observarUsuarios(): Flow<List<Usuario>>
 
     @Query("SELECT * FROM usuarios WHERE id = :id LIMIT 1")
     suspend fun obtenerPorId(id: Long): Usuario?
+
+    @Query("SELECT * FROM usuarios WHERE correo = :correo LIMIT 1")
+    suspend fun obtenerPorCorreo(correo: String): Usuario?
 }
