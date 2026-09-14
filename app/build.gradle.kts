@@ -76,5 +76,5 @@ dependencies {
     implementation(libs.coil.compose)
 
     // Clasificación de imágenes en dispositivo
-    implementation(libs.tensorflow.lite.task.vision)
+    implementation(libs.tensorflow.lite)
 }

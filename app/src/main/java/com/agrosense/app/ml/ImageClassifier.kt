@@ -4,37 +4,66 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import com.agrosense.app.data.local.entity.Prediccion
-import org.tensorflow.lite.support.image.TensorImage
-import org.tensorflow.lite.task.core.BaseOptions
-import org.tensorflow.lite.task.vision.classifier.ImageClassifier as TfLiteImageClassifier
+import org.tensorflow.lite.Interpreter
 import java.io.Closeable
+import java.io.FileInputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.MappedByteBuffer
+import java.nio.channels.FileChannel
 import java.util.Locale
 
 /**
  * Clasificador de enfermedades de cultivo que corre en el dispositivo.
  *
- * El modelo se lee de assets/[MODELO]; si todavía no está copiado (T6.3),
- * [disponible] queda en false y [classify] devuelve un resultado vacío en
- * lugar de tumbar la app, para que el resto del flujo se pueda probar sin
- * el .tflite.
+ * Usa el `Interpreter` de TensorFlow Lite directamente, no la Task Library:
+ * ésta exige que el .tflite lleve metadata embebida, y la herramienta que la
+ * escribe (`tflite-support`) ya no publica versiones compatibles con el Python
+ * que usa Colab hoy. Con el intérprete, el modelo que exporta el notebook sirve
+ * tal cual y las etiquetas salen de assets/[ETIQUETAS].
+ *
+ * A cambio, el preprocesamiento pasa a ser responsabilidad de esta clase: ver
+ * [prepararEntrada].
+ *
+ * Si el modelo todavía no está en assets, [disponible] queda en false y
+ * [classify] devuelve un resultado vacío en lugar de tumbar la app, para que el
+ * resto del flujo se pueda probar sin el .tflite.
  */
 class ImageClassifier(context: Context) : Closeable {
 
     private val etiquetas: List<String> = cargarEtiquetas(context)
-    private var classifier: TfLiteImageClassifier? = null
+    private var interprete: Interpreter? = null
+    private var ladoEntrada: Int = 0
+    private var numClases: Int = 0
 
     /** true cuando el modelo se cargó y se puede clasificar. */
-    val disponible: Boolean get() = classifier != null
+    val disponible: Boolean get() = interprete != null
 
     init {
-        classifier = try {
-            val opciones = TfLiteImageClassifier.ImageClassifierOptions.builder()
-                .setBaseOptions(BaseOptions.builder().setNumThreads(NUM_HILOS).build())
-                .setMaxResults(MAX_RESULTADOS)
-                .setScoreThreshold(UMBRAL_MINIMO)
-                .build()
+        interprete = try {
+            val opciones = Interpreter.Options().apply { numThreads = NUM_HILOS }
+            val creado = Interpreter(cargarModelo(context), opciones)
 
-            TfLiteImageClassifier.createFromFileAndOptions(context, MODELO, opciones)
+            // La forma la dicta el modelo, no la fijamos aquí: [1, lado, lado, 3]
+            // a la entrada y [1, clases] a la salida.
+            ladoEntrada = creado.getInputTensor(0).shape()[1]
+            val formaSalida = creado.getOutputTensor(0).shape()
+            numClases = formaSalida[formaSalida.size - 1]
+
+            if (etiquetas.isNotEmpty() && etiquetas.size != numClases) {
+                // Un labels.txt descuadrado renombraría todos los diagnósticos
+                // sin provocar ningún error. Preferimos no clasificar a mentir.
+                Log.e(
+                    TAG,
+                    "$ETIQUETAS tiene ${etiquetas.size} etiquetas pero el modelo " +
+                        "devuelve $numClases clases. Clasificador desactivado."
+                )
+                creado.close()
+                null
+            } else {
+                Log.i(TAG, "Modelo cargado: entrada ${ladoEntrada}x$ladoEntrada, $numClases clases.")
+                creado
+            }
         } catch (e: Exception) {
             Log.w(TAG, "No se pudo cargar $MODELO: ${e.message}")
             null
@@ -42,24 +71,26 @@ class ImageClassifier(context: Context) : Closeable {
     }
 
     fun classify(bitmap: Bitmap): ClassificationResult {
-        val modelo = classifier ?: return ClassificationResult.NO_DISPONIBLE
+        val modelo = interprete ?: return ClassificationResult.NO_DISPONIBLE
 
         return try {
-            val entrada = TensorImage.fromBitmap(bitmap.copy(Bitmap.Config.ARGB_8888, false))
-            val categorias = modelo.classify(entrada)
-                .firstOrNull()
-                ?.categories
-                .orEmpty()
-                .sortedByDescending { it.score }
+            val salida = Array(1) { FloatArray(numClases) }
+            modelo.run(prepararEntrada(bitmap), salida)
+            val probabilidades = salida[0]
 
-            if (categorias.isEmpty()) {
+            val mejores = probabilidades.indices
+                .sortedByDescending { probabilidades[it] }
+                .filter { probabilidades[it] >= UMBRAL_MINIMO }
+                .take(MAX_RESULTADOS)
+
+            if (mejores.isEmpty()) {
                 return ClassificationResult.SIN_RESULTADO
             }
 
-            val predicciones = categorias.take(MAX_RESULTADOS).map { categoria ->
+            val predicciones = mejores.map { indice ->
                 Prediccion(
-                    clase = nombreLegible(categoria.label, categoria.index),
-                    confianza = categoria.score
+                    clase = nombreLegible(indice),
+                    confianza = probabilidades[indice]
                 )
             }
 
@@ -75,28 +106,72 @@ class ImageClassifier(context: Context) : Closeable {
     }
 
     override fun close() {
-        classifier?.close()
-        classifier = null
+        interprete?.close()
+        interprete = null
     }
 
     /**
-     * El nombre viene de los metadatos del modelo. Si el .tflite se exportó
-     * sin ellos, la Task Library entrega el índice como etiqueta; en ese
-     * caso se recurre a labels.txt.
+     * Redimensiona la foto a la entrada del modelo y normaliza a [-1, 1].
+     *
+     * Los 127.5 vienen de `mobilenet_v2.preprocess_input`, que es lo que aplica
+     * el notebook de entrenamiento: (pixel - 127.5) / 127.5. Si allí se cambia
+     * de backbone, hay que cambiar estas constantes o el modelo recibirá los
+     * píxeles en un rango que no espera.
      */
-    private fun nombreLegible(etiqueta: String?, indice: Int): String {
-        val desdeModelo = etiqueta?.takeIf { it.isNotBlank() && it.toIntOrNull() == null }
-        val desdeArchivo = etiquetas.getOrNull(indice)
-        return desdeModelo ?: desdeArchivo ?: "Clase $indice"
+    private fun prepararEntrada(bitmap: Bitmap): ByteBuffer {
+        val lado = ladoEntrada
+        val rgb = if (bitmap.config == Bitmap.Config.ARGB_8888) {
+            bitmap
+        } else {
+            bitmap.copy(Bitmap.Config.ARGB_8888, false)
+        }
+        val escalado = Bitmap.createScaledBitmap(rgb, lado, lado, true)
+
+        val buffer = ByteBuffer
+            .allocateDirect(lado * lado * CANALES * BYTES_POR_FLOAT)
+            .order(ByteOrder.nativeOrder())
+
+        val pixeles = IntArray(lado * lado)
+        escalado.getPixels(pixeles, 0, lado, 0, 0, lado, lado)
+        for (pixel in pixeles) {
+            buffer.putFloat((((pixel shr 16) and 0xFF) - MEDIA) / DESVIACION)
+            buffer.putFloat((((pixel shr 8) and 0xFF) - MEDIA) / DESVIACION)
+            buffer.putFloat(((pixel and 0xFF) - MEDIA) / DESVIACION)
+        }
+        buffer.rewind()
+
+        if (escalado !== rgb) escalado.recycle()
+        if (rgb !== bitmap) rgb.recycle()
+        return buffer
     }
+
+    /**
+     * El intérprete solo devuelve índices, así que el nombre sale siempre de
+     * [ETIQUETAS]. El init ya garantiza que, si el archivo existe, su tamaño
+     * coincide con el número de salidas del modelo.
+     */
+    private fun nombreLegible(indice: Int): String =
+        etiquetas.getOrNull(indice) ?: "Clase $indice"
 
     private fun cargarEtiquetas(context: Context): List<String> = try {
         context.assets.open(ETIQUETAS).bufferedReader().useLines { lineas ->
             lineas.map { it.trim() }.filter { it.isNotEmpty() }.toList()
         }
     } catch (e: Exception) {
+        Log.w(TAG, "No se pudo leer $ETIQUETAS: ${e.message}")
         emptyList()
     }
+
+    private fun cargarModelo(context: Context): MappedByteBuffer =
+        context.assets.openFd(MODELO).use { descriptor ->
+            FileInputStream(descriptor.fileDescriptor).use { entrada ->
+                entrada.channel.map(
+                    FileChannel.MapMode.READ_ONLY,
+                    descriptor.startOffset,
+                    descriptor.declaredLength
+                )
+            }
+        }
 
     companion object {
         private const val TAG = "ImageClassifier"
@@ -105,6 +180,10 @@ class ImageClassifier(context: Context) : Closeable {
         private const val MAX_RESULTADOS = 3
         private const val UMBRAL_MINIMO = 0.01f
         private const val NUM_HILOS = 2
+        private const val CANALES = 3
+        private const val BYTES_POR_FLOAT = 4
+        private const val MEDIA = 127.5f
+        private const val DESVIACION = 127.5f
     }
 }
 
