@@ -31,6 +31,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +46,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.agrosense.app.data.local.entity.Diagnostico
+import com.agrosense.app.data.local.entity.Prediccion
+import com.agrosense.app.ml.ImageClassifier
+import com.agrosense.app.ml.porcentaje
 import com.agrosense.app.ui.viewmodel.DiagnosticoViewModel
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
 import java.io.File
@@ -118,6 +122,25 @@ fun DiagnosticoScreen(
         mutableStateOf("")
     }
 
+    // Clasificador en el dispositivo. Si el modelo no está en assets/,
+    // `disponible` queda en false y el botón de análisis se deshabilita:
+    // el formulario sigue funcionando a mano.
+    val clasificador = remember(context) {
+        ImageClassifier(context)
+    }
+
+    DisposableEffect(clasificador) {
+        onDispose { clasificador.close() }
+    }
+
+    var top3Detectado by remember {
+        mutableStateOf<List<Prediccion>>(emptyList())
+    }
+
+    var mensajeAnalisis by remember {
+        mutableStateOf<String?>(null)
+    }
+
     val camaraLauncher =
         rememberLauncherForActivityResult(
             contract =
@@ -170,6 +193,44 @@ fun DiagnosticoScreen(
         imagenBitmap = null
         imagenRuta = ""
         diagnosticoEditando = null
+        top3Detectado = emptyList()
+        mensajeAnalisis = null
+    }
+
+    /**
+     * Rellena resultado, confianza y top-3 a partir de la foto, usando el
+     * modelo de assets/. No guarda nada: deja los campos editables para que
+     * el usuario corrija antes de guardar, que es lo prudente — en fotos de
+     * campo el modelo acierta cerca de un 25% de las veces.
+     */
+    fun analizarConIA() {
+        val foto = imagenBitmap
+
+        if (foto == null) {
+            mensajeAnalisis = "Toma o elige una foto primero."
+            return
+        }
+
+        val analisis = clasificador.classify(foto)
+
+        if (!analisis.esValido) {
+            mensajeAnalisis = analisis.label
+            top3Detectado = emptyList()
+            return
+        }
+
+        resultado = analisis.label
+
+        confianza = (analisis.confidence * 100f)
+            .toInt()
+            .toString()
+
+        top3Detectado = analisis.top3
+
+        mensajeAnalisis = analisis.top3
+            .joinToString(" · ") { p ->
+                "${p.clase} ${p.porcentaje()}"
+            }
     }
 
     fun abrirNuevoDiagnostico() {
@@ -202,6 +263,12 @@ fun DiagnosticoScreen(
             BitmapFactory.decodeFile(
                 diagnostico.imagenRuta
             )
+
+        // Conserva el top-3 que se guardó al crear el diagnóstico, para no
+        // vaciarlo al actualizar desde el formulario.
+        top3Detectado = diagnostico.top3
+
+        mensajeAnalisis = null
 
         mostrarFormulario = true
     }
@@ -526,6 +593,66 @@ fun DiagnosticoScreen(
                                 Modifier.height(12.dp)
                         )
 
+                        Button(
+                            onClick = {
+                                analizarConIA()
+                            },
+                            enabled =
+                                clasificador.disponible &&
+                                    imagenBitmap != null,
+                            modifier =
+                                Modifier.fillMaxWidth()
+                        ) {
+                            Text("Analizar con IA")
+                        }
+
+                        if (
+                            !clasificador.disponible
+                        ) {
+                            Text(
+                                text =
+                                    "El modelo no está " +
+                                        "instalado en assets/. " +
+                                        "Puedes llenar el " +
+                                        "diagnóstico a mano.",
+                                style =
+                                    MaterialTheme
+                                        .typography
+                                        .bodySmall
+                            )
+                        }
+
+                        mensajeAnalisis?.let { texto ->
+
+                            Spacer(
+                                modifier =
+                                    Modifier.height(8.dp)
+                            )
+
+                            Text(
+                                text = texto,
+                                style =
+                                    MaterialTheme
+                                        .typography
+                                        .bodySmall
+                            )
+
+                            Text(
+                                text =
+                                    "Sugerencia del modelo: " +
+                                        "revísala antes de guardar.",
+                                style =
+                                    MaterialTheme
+                                        .typography
+                                        .bodySmall
+                            )
+                        }
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(12.dp)
+                        )
+
                         OutlinedTextField(
                             value =
                                 resultado,
@@ -632,7 +759,7 @@ fun DiagnosticoScreen(
                                                 porcentaje /
                                                         100f,
                                             top3 =
-                                                emptyList(),
+                                                top3Detectado,
                                             observaciones =
                                                 observaciones
                                                     .trim()
@@ -656,6 +783,8 @@ fun DiagnosticoScreen(
                                             confianza =
                                                 porcentaje /
                                                         100f,
+                                            top3 =
+                                                top3Detectado,
                                             observaciones =
                                                 observaciones
                                                     .trim()

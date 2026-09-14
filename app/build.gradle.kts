@@ -57,4 +57,7 @@ dependencies {
     implementation("androidx.room:room-ktx:2.7.2")
     ksp("androidx.room:room-compiler:2.7.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2")
+
+    // Clasificación de enfermedades en el dispositivo (modelo en assets/)
+    implementation("org.tensorflow:tensorflow-lite:2.17.0")
 }
