@@ -2,42 +2,41 @@ package com.agrosense.app.data.repository
 
 import com.agrosense.app.data.local.dao.UsuarioDao
 import com.agrosense.app.data.local.entity.Usuario
-import kotlinx.coroutines.flow.Flow
 
 class UsuarioRepository(
     private val usuarioDao: UsuarioDao
 ) {
 
-    fun observarUsuarios(): Flow<List<Usuario>> {
-        return usuarioDao.observarTodos()
-    }
+    fun observarUsuarios() =
+        usuarioDao.observarUsuarios()
 
     suspend fun registrarUsuario(
-        nombre: String,
-        correo: String,
-        tipoUsuario: String = "Productor"
+        usuario: Usuario
     ): Long {
-
-        val usuario = Usuario(
-            nombre = nombre.trim(),
-            correo = correo.trim().lowercase(),
-            tipoUsuario = tipoUsuario
-        )
-
         return usuarioDao.insertar(usuario)
     }
 
-    suspend fun obtenerPorCorreo(correo: String): Usuario? {
-        return usuarioDao.obtenerPorCorreo(
-            correo.trim().lowercase()
-        )
+    suspend fun actualizarUsuario(
+        usuario: Usuario
+    ) {
+        usuarioDao.actualizar(usuario)
     }
 
-    suspend fun obtenerPorId(id: Long): Usuario? {
+    suspend fun eliminarUsuario(
+        usuario: Usuario
+    ) {
+        usuarioDao.eliminar(usuario)
+    }
+
+    suspend fun obtenerPorId(
+        id: Long
+    ): Usuario? {
         return usuarioDao.obtenerPorId(id)
     }
 
-    suspend fun actualizarUsuario(usuario: Usuario) {
-        usuarioDao.actualizar(usuario)
+    suspend fun obtenerPorCorreo(
+        correo: String
+    ): Usuario? {
+        return usuarioDao.obtenerPorCorreo(correo)
     }
 }

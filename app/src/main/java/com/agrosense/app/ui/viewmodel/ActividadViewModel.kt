@@ -11,35 +11,48 @@ class ActividadViewModel(
     private val repository: ActividadRepository
 ) : ViewModel() {
 
-    fun observarPorParcela(parcelaId: Long): Flow<List<Actividad>> {
+    fun observarPorParcela(
+        parcelaId: Long
+    ): Flow<List<Actividad>> {
         return repository.observarPorParcela(parcelaId)
     }
 
-    fun registrarActividad(actividad: Actividad) {
+    fun registrarActividad(
+        parcelaId: Long,
+        tipo: String,
+        descripcion: String
+    ) {
         viewModelScope.launch {
-            repository.registrarActividad(actividad)
+
+            repository.registrarActividad(
+                Actividad(
+                    parcelaId = parcelaId,
+                    tipo = tipo,
+                    descripcion = descripcion
+                )
+            )
         }
     }
 
-    fun eliminarActividad(actividad: Actividad) {
+    fun actualizarActividad(
+        actividad: Actividad
+    ) {
+        viewModelScope.launch {
+            repository.actualizarActividad(actividad)
+        }
+    }
+
+    fun eliminarActividad(
+        actividad: Actividad
+    ) {
         viewModelScope.launch {
             repository.eliminarActividad(actividad)
         }
     }
 
-    suspend fun obtenerPorRango(
-        parcelaId: Long,
-        desde: Long,
-        hasta: Long
-    ): List<Actividad> {
-        return repository.obtenerPorRango(
-            parcelaId = parcelaId,
-            desde = desde,
-            hasta = hasta
-        )
-    }
-
-    suspend fun obtenerPorId(id: Long): Actividad? {
+    suspend fun obtenerPorId(
+        id: Long
+    ): Actividad? {
         return repository.obtenerPorId(id)
     }
 }

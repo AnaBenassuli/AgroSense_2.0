@@ -11,27 +11,45 @@ class DiagnosticoViewModel(
     private val repository: DiagnosticoRepository
 ) : ViewModel() {
 
-    fun observarPorParcela(parcelaId: Long): Flow<List<Diagnostico>> {
+    fun observarPorParcela(
+        parcelaId: Long
+    ): Flow<List<Diagnostico>> {
         return repository.observarPorParcela(parcelaId)
     }
 
-    fun registrarDiagnostico(diagnostico: Diagnostico) {
+    fun registrarDiagnostico(
+        diagnostico: Diagnostico
+    ) {
         viewModelScope.launch {
             repository.registrarDiagnostico(diagnostico)
         }
     }
 
-    fun eliminarDiagnostico(diagnostico: Diagnostico) {
+    fun actualizarDiagnostico(
+        diagnostico: Diagnostico
+    ) {
+        viewModelScope.launch {
+            repository.actualizarDiagnostico(diagnostico)
+        }
+    }
+
+    fun eliminarDiagnostico(
+        diagnostico: Diagnostico
+    ) {
         viewModelScope.launch {
             repository.eliminarDiagnostico(diagnostico)
         }
     }
 
-    suspend fun obtenerUltimo(parcelaId: Long): Diagnostico? {
+    suspend fun obtenerUltimo(
+        parcelaId: Long
+    ): Diagnostico? {
         return repository.obtenerUltimo(parcelaId)
     }
 
-    suspend fun obtenerPorId(id: Long): Diagnostico? {
+    suspend fun obtenerPorId(
+        id: Long
+    ): Diagnostico? {
         return repository.obtenerPorId(id)
     }
 }

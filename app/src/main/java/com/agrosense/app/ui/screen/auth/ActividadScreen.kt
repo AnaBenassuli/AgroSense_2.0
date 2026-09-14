@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,7 +24,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,13 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.agrosense.app.data.local.entity.Actividad
-import com.agrosense.app.data.local.entity.Parcela
 import com.agrosense.app.ui.viewmodel.ActividadViewModel
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
-import kotlinx.coroutines.flow.flowOf
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
 fun ActividadScreen(
@@ -51,16 +46,43 @@ fun ActividadScreen(
 
     val parcelas by parcelaViewModel.parcelas.collectAsState()
 
-    var parcelaSeleccionada by remember {
-        mutableStateOf<Parcela?>(null)
+    var parcelaSeleccionadaId by remember {
+        mutableStateOf<Long?>(null)
     }
 
-    var menuParcelasAbierto by remember {
+    if (
+        parcelaSeleccionadaId == null &&
+        parcelas.isNotEmpty()
+    ) {
+        parcelaSeleccionadaId = parcelas.first().id
+    }
+
+    val actividades = parcelaSeleccionadaId?.let { id ->
+
+        val flow = remember(id) {
+            actividadViewModel.observarPorParcela(id)
+        }
+
+        flow.collectAsState(
+            initial = emptyList()
+        ).value
+
+    } ?: emptyList()
+
+    var mostrarMenuParcelas by remember {
         mutableStateOf(false)
     }
 
     var mostrarFormulario by remember {
         mutableStateOf(false)
+    }
+
+    var actividadEditando by remember {
+        mutableStateOf<Actividad?>(null)
+    }
+
+    var actividadAEliminar by remember {
+        mutableStateOf<Actividad?>(null)
     }
 
     var tipo by remember {
@@ -71,27 +93,30 @@ fun ActividadScreen(
         mutableStateOf("")
     }
 
-    LaunchedEffect(parcelas) {
-        if (
-            parcelaSeleccionada == null &&
-            parcelas.isNotEmpty()
-        ) {
-            parcelaSeleccionada = parcelas.first()
-        }
+    fun limpiarFormulario() {
+        tipo = ""
+        descripcion = ""
+        actividadEditando = null
     }
 
-    val flujoActividades =
-        parcelaSeleccionada?.let {
-            actividadViewModel.observarPorParcela(it.id)
-        } ?: flowOf(emptyList())
+    fun nuevaActividad() {
+        limpiarFormulario()
+        mostrarFormulario = true
+    }
 
-    val actividades by flujoActividades.collectAsState(
-        initial = emptyList()
-    )
+    fun editarActividad(
+        actividad: Actividad
+    ) {
+        actividadEditando = actividad
+        tipo = actividad.tipo
+        descripcion = actividad.descripcion
+        mostrarFormulario = true
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .padding(
                 horizontal = 20.dp,
                 vertical = 18.dp
@@ -99,7 +124,6 @@ fun ActividadScreen(
     ) {
 
         // HEADER
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -111,27 +135,28 @@ fun ActividadScreen(
                 Text("←")
             }
 
-            Column {
-
-                Text(
-                    text = "Actividades",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = "Lleva el control de las labores de tu cultivo",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = "Actividades",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
         }
+
+        Spacer(
+            modifier = Modifier.height(8.dp)
+        )
+
+        Text(
+            text = "Registra y administra las actividades de tus parcelas.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 
         Spacer(
             modifier = Modifier.height(20.dp)
         )
 
-        // PARCELA
+        // SELECTOR DE PARCELA
 
         Text(
             text = "Parcela",
@@ -140,48 +165,52 @@ fun ActividadScreen(
         )
 
         Spacer(
-            modifier = Modifier.height(8.dp)
+            modifier = Modifier.height(6.dp)
         )
 
-        OutlinedButton(
-            onClick = {
-                menuParcelasAbierto = true
-            },
-            enabled = parcelas.isNotEmpty(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(14.dp)
-        ) {
+        Column {
 
-            Text(
-                text =
-                    parcelaSeleccionada?.let {
-                        "${it.nombre} · ${it.cultivo}"
-                    } ?: "Seleccionar parcela"
-            )
-        }
+            OutlinedButton(
+                onClick = {
+                    mostrarMenuParcelas = true
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp)
+            ) {
 
-        DropdownMenu(
-            expanded = menuParcelasAbierto,
-            onDismissRequest = {
-                menuParcelasAbierto = false
+                val nombreParcela =
+                    parcelas.firstOrNull {
+                        it.id == parcelaSeleccionadaId
+                    }?.nombre
+                        ?: "Seleccionar parcela"
+
+                Text(nombreParcela)
             }
-        ) {
 
-            parcelas.forEach { parcela ->
+            DropdownMenu(
+                expanded = mostrarMenuParcelas,
+                onDismissRequest = {
+                    mostrarMenuParcelas = false
+                }
+            ) {
 
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            "${parcela.nombre} · ${parcela.cultivo}"
-                        )
-                    },
-                    onClick = {
-                        parcelaSeleccionada = parcela
-                        menuParcelasAbierto = false
-                    }
-                )
+                parcelas.forEach { parcela ->
+
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "${parcela.nombre} · ${parcela.cultivo}"
+                            )
+                        },
+                        onClick = {
+                            parcelaSeleccionadaId =
+                                parcela.id
+
+                            mostrarMenuParcelas =
+                                false
+                        }
+                    )
+                }
             }
         }
 
@@ -189,128 +218,112 @@ fun ActividadScreen(
             modifier = Modifier.height(16.dp)
         )
 
-        // NUEVA ACTIVIDAD
-
+        // CREATE
         Button(
             onClick = {
-                mostrarFormulario = true
+                nuevaActividad()
             },
-            enabled = parcelaSeleccionada != null,
+            enabled =
+                parcelaSeleccionadaId != null,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp),
             shape = RoundedCornerShape(14.dp)
         ) {
 
-            Text(
-                text = "+ Registrar actividad",
-                style = MaterialTheme.typography.labelLarge
-            )
+            Text("+ Registrar actividad")
         }
 
         Spacer(
-            modifier = Modifier.height(26.dp)
+            modifier = Modifier.height(24.dp)
         )
 
-        when {
+        if (parcelas.isEmpty()) {
 
-            parcelas.isEmpty() -> {
+            EmptyActividadCard(
+                titulo = "Primero agrega una parcela",
+                descripcion = "Necesitas una parcela para registrar actividades."
+            )
 
-                EmptyActivityCard(
-                    title = "No tienes parcelas",
-                    description =
-                        "Primero agrega una parcela para registrar actividades."
-                )
-            }
+        } else if (actividades.isEmpty()) {
 
-            actividades.isEmpty() -> {
+            EmptyActividadCard(
+                titulo = "Sin actividades",
+                descripcion = "Todavía no hay actividades registradas para esta parcela."
+            )
 
-                EmptyActivityCard(
-                    title = "Sin actividades",
-                    description =
-                        "Aún no has registrado labores para esta parcela."
-                )
-            }
+        } else {
 
-            else -> {
+            Text(
+                text = if (actividades.size == 1) {
+                    "1 actividad registrada"
+                } else {
+                    "${actividades.size} actividades registradas"
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.SpaceBetween,
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
+            Spacer(
+                modifier = Modifier.height(12.dp)
+            )
 
-                    Text(
-                        text = "Actividad reciente",
-                        style =
-                            MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+            // READ
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement =
+                    Arrangement.spacedBy(12.dp)
+            ) {
 
-                    Text(
-                        text = "${actividades.size} registros",
-                        style =
-                            MaterialTheme.typography.labelMedium,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                items(
+                    items = actividades,
+                    key = {
+                        it.id
+                    }
+                ) { actividad ->
 
-                Spacer(
-                    modifier = Modifier.height(12.dp)
-                )
-
-                LazyColumn(
-                    verticalArrangement =
-                        Arrangement.spacedBy(12.dp)
-                ) {
-
-                    items(
-                        items = actividades,
-                        key = { actividad ->
-                            actividad.id
+                    ActividadCard(
+                        actividad = actividad,
+                        onEditClick = {
+                            editarActividad(
+                                actividad
+                            )
+                        },
+                        onDeleteClick = {
+                            actividadAEliminar =
+                                actividad
                         }
-                    ) { actividad ->
-
-                        ActividadCard(
-                            actividad = actividad,
-                            onDeleteClick = {
-                                actividadViewModel
-                                    .eliminarActividad(
-                                        actividad
-                                    )
-                            }
-                        )
-                    }
-
-                    item {
-                        Spacer(
-                            modifier = Modifier.height(24.dp)
-                        )
-                    }
+                    )
                 }
             }
         }
     }
 
-    // FORMULARIO
+    // =====================================================
+    // CREATE / UPDATE
+    // =====================================================
 
     if (mostrarFormulario) {
 
         AlertDialog(
             onDismissRequest = {
                 mostrarFormulario = false
+                limpiarFormulario()
             },
 
             shape = RoundedCornerShape(18.dp),
 
             title = {
+
                 Text(
-                    text = "Nueva actividad",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    text =
+                        if (actividadEditando == null) {
+                            "Nueva actividad"
+                        } else {
+                            "Editar actividad"
+                        },
+                    fontWeight =
+                        FontWeight.Bold
                 )
             },
 
@@ -318,65 +331,29 @@ fun ActividadScreen(
 
                 Column {
 
-                    parcelaSeleccionada?.let { parcela ->
-
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor =
-                                    MaterialTheme.colorScheme.primaryContainer
-                            )
-                        ) {
-
-                            Column(
-                                modifier = Modifier.padding(12.dp)
-                            ) {
-
-                                Text(
-                                    text = parcela.nombre,
-                                    style =
-                                        MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color =
-                                        MaterialTheme.colorScheme
-                                            .onPrimaryContainer
-                                )
-
-                                Text(
-                                    text = parcela.cultivo,
-                                    style =
-                                        MaterialTheme.typography.bodySmall,
-                                    color =
-                                        MaterialTheme.colorScheme
-                                            .onPrimaryContainer
-                                )
-                            }
-                        }
-
-                        Spacer(
-                            modifier = Modifier.height(16.dp)
-                        )
-                    }
-
                     OutlinedTextField(
                         value = tipo,
                         onValueChange = {
                             tipo = it
                         },
                         label = {
-                            Text("Tipo de actividad")
+                            Text(
+                                "Tipo de actividad"
+                            )
                         },
                         placeholder = {
-                            Text("Ej. Riego, fertilización, poda...")
+                            Text(
+                                "Ej. Riego, fertilización..."
+                            )
                         },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp)
+                        modifier =
+                            Modifier.fillMaxWidth()
                     )
 
                     Spacer(
-                        modifier = Modifier.height(14.dp)
+                        modifier =
+                            Modifier.height(12.dp)
                     )
 
                     OutlinedTextField(
@@ -389,16 +366,14 @@ fun ActividadScreen(
                         },
                         placeholder = {
                             Text(
-                                "Describe el trabajo realizado..."
+                                "Describe la actividad realizada"
                             )
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(140.dp),
-                        minLines = 4,
-                        maxLines = 6,
+                        minLines = 3,
+                        maxLines = 5,
                         singleLine = false,
-                        shape = RoundedCornerShape(14.dp)
+                        modifier =
+                            Modifier.fillMaxWidth()
                     )
                 }
             },
@@ -408,36 +383,62 @@ fun ActividadScreen(
                 Button(
                     onClick = {
 
-                        val parcela =
-                            parcelaSeleccionada
+                        val parcelaId =
+                            parcelaSeleccionadaId
 
                         if (
-                            parcela != null &&
+                            parcelaId != null &&
                             tipo.isNotBlank() &&
                             descripcion.isNotBlank()
                         ) {
 
-                            actividadViewModel
-                                .registrarActividad(
-                                    Actividad(
-                                        parcelaId = parcela.id,
-                                        tipo = tipo.trim(),
+                            val actual =
+                                actividadEditando
+
+                            if (actual == null) {
+
+                                // CREATE
+                                actividadViewModel
+                                    .registrarActividad(
+                                        parcelaId =
+                                            parcelaId,
+                                        tipo =
+                                            tipo.trim(),
                                         descripcion =
                                             descripcion.trim()
                                     )
-                                )
 
-                            tipo = ""
-                            descripcion = ""
-                            mostrarFormulario = false
+                            } else {
+
+                                // UPDATE
+                                actividadViewModel
+                                    .actualizarActividad(
+                                        actual.copy(
+                                            tipo =
+                                                tipo.trim(),
+                                            descripcion =
+                                                descripcion.trim()
+                                        )
+                                    )
+                            }
+
+                            mostrarFormulario =
+                                false
+
+                            limpiarFormulario()
                         }
-                    },
-                    enabled =
-                        tipo.isNotBlank() &&
-                                descripcion.isNotBlank()
+                    }
                 ) {
 
-                    Text("Guardar")
+                    Text(
+                        if (
+                            actividadEditando == null
+                        ) {
+                            "Guardar"
+                        } else {
+                            "Actualizar"
+                        }
+                    )
                 }
             },
 
@@ -445,7 +446,89 @@ fun ActividadScreen(
 
                 TextButton(
                     onClick = {
-                        mostrarFormulario = false
+                        mostrarFormulario =
+                            false
+
+                        limpiarFormulario()
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // =====================================================
+    // DELETE
+    // =====================================================
+
+    actividadAEliminar?.let { actividad ->
+
+        AlertDialog(
+            onDismissRequest = {
+                actividadAEliminar = null
+            },
+
+            shape = RoundedCornerShape(18.dp),
+
+            title = {
+
+                Text(
+                    text = "Eliminar actividad",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+
+            text = {
+
+                Column {
+
+                    Text(
+                        text =
+                            "¿Deseas eliminar la actividad \"${actividad.tipo}\"?"
+                    )
+
+                    Spacer(
+                        modifier =
+                            Modifier.height(8.dp)
+                    )
+
+                    Text(
+                        text =
+                            "Esta acción no se puede deshacer.",
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+
+            confirmButton = {
+
+                Button(
+                    onClick = {
+
+                        actividadViewModel
+                            .eliminarActividad(
+                                actividad
+                            )
+
+                        actividadAEliminar =
+                            null
+                    }
+                ) {
+
+                    Text("Eliminar")
+                }
+            },
+
+            dismissButton = {
+
+                TextButton(
+                    onClick = {
+                        actividadAEliminar =
+                            null
                     }
                 ) {
 
@@ -459,6 +542,7 @@ fun ActividadScreen(
 @Composable
 private fun ActividadCard(
     actividad: Actividad,
+    onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
 
@@ -472,79 +556,23 @@ private fun ActividadCard(
     ) {
 
         Column(
-            modifier = Modifier.padding(18.dp)
+            modifier =
+                Modifier.padding(18.dp)
         ) {
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.SpaceBetween,
-                verticalAlignment =
-                    Alignment.Top
-            ) {
-
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-
-                    Text(
-                        text = actividad.tipo,
-                        style =
-                            MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(4.dp)
-                    )
-
-                    Text(
-                        text = formatearFechaActividad(
-                            actividad.fecha
-                        ),
-                        style =
-                            MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor =
-                            MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-
-                    Text(
-                        text = "Registrada",
-                        style =
-                            MaterialTheme.typography.labelSmall,
-                        color =
-                            MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(
-                            horizontal = 10.dp,
-                            vertical = 6.dp
-                        )
-                    )
-                }
-            }
-
-            Spacer(
-                modifier = Modifier.height(16.dp)
-            )
-
             Text(
-                text = "Descripción",
+                text = actividad.tipo,
                 style =
-                    MaterialTheme.typography.labelSmall,
+                    MaterialTheme.typography.titleMedium,
+                fontWeight =
+                    FontWeight.Bold,
                 color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                    MaterialTheme.colorScheme.primary
             )
 
             Spacer(
-                modifier = Modifier.height(4.dp)
+                modifier =
+                    Modifier.height(8.dp)
             )
 
             Text(
@@ -554,14 +582,31 @@ private fun ActividadCard(
             )
 
             Spacer(
-                modifier = Modifier.height(12.dp)
+                modifier =
+                    Modifier.height(16.dp)
             )
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier =
+                    Modifier.fillMaxWidth(),
                 horizontalArrangement =
-                    Arrangement.End
+                    Arrangement.End,
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
+
+                OutlinedButton(
+                    onClick = onEditClick
+                ) {
+                    Text("Editar")
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.padding(
+                            horizontal = 4.dp
+                        )
+                )
 
                 TextButton(
                     onClick = onDeleteClick
@@ -579,9 +624,9 @@ private fun ActividadCard(
 }
 
 @Composable
-private fun EmptyActivityCard(
-    title: String,
-    description: String
+private fun EmptyActividadCard(
+    titulo: String,
+    descripcion: String
 ) {
 
     Card(
@@ -594,22 +639,25 @@ private fun EmptyActivityCard(
     ) {
 
         Column(
-            modifier = Modifier.padding(20.dp)
+            modifier =
+                Modifier.padding(20.dp)
         ) {
 
             Text(
-                text = title,
+                text = titulo,
                 style =
                     MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight =
+                    FontWeight.Bold
             )
 
             Spacer(
-                modifier = Modifier.height(6.dp)
+                modifier =
+                    Modifier.height(6.dp)
             )
 
             Text(
-                text = description,
+                text = descripcion,
                 style =
                     MaterialTheme.typography.bodyMedium,
                 color =
@@ -617,19 +665,4 @@ private fun EmptyActivityCard(
             )
         }
     }
-}
-
-private fun formatearFechaActividad(
-    timestamp: Long
-): String {
-
-    val formato =
-        SimpleDateFormat(
-            "dd MMM yyyy · HH:mm",
-            Locale.getDefault()
-        )
-
-    return formato.format(
-        Date(timestamp)
-    )
 }

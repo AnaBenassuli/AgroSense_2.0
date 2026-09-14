@@ -17,27 +17,43 @@ class UsuarioViewModel(
         repository.observarUsuarios()
             .stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
+                started = SharingStarted.WhileSubscribed(5000),
                 initialValue = emptyList()
             )
 
     fun registrarUsuario(
         nombre: String,
         correo: String,
-        tipoUsuario: String = "Productor"
+        tipoUsuario: String
     ) {
+
         viewModelScope.launch {
+
             repository.registrarUsuario(
-                nombre = nombre,
-                correo = correo,
-                tipoUsuario = tipoUsuario
+                Usuario(
+                    nombre = nombre,
+                    correo = correo,
+                    tipoUsuario = tipoUsuario
+                )
             )
         }
     }
 
-    fun actualizarUsuario(usuario: Usuario) {
+    fun actualizarUsuario(
+        usuario: Usuario
+    ) {
+
         viewModelScope.launch {
             repository.actualizarUsuario(usuario)
+        }
+    }
+
+    fun eliminarUsuario(
+        usuario: Usuario
+    ) {
+
+        viewModelScope.launch {
+            repository.eliminarUsuario(usuario)
         }
     }
 }

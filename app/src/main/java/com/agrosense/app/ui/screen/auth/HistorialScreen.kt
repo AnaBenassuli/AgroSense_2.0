@@ -88,6 +88,11 @@ fun HistorialScreen(
             )
     ) {
 
+        Spacer(
+            modifier = Modifier.height(34.dp)
+        )
+
+
         // HEADER
 
         Row(

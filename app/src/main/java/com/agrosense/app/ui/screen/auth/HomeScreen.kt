@@ -18,30 +18,33 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.agrosense.app.ui.components.AgroSenseLogo
 
 @Composable
 fun HomeScreen(
     onParcelasClick: () -> Unit,
     onDiagnosticoClick: () -> Unit,
     onHistorialClick: () -> Unit,
-    onActividadesClick: () -> Unit
+    onActividadesClick: () -> Unit,
+    onPerfilClick: () -> Unit
 ) {
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 18.dp)
+            .padding(
+                horizontal = 20.dp,
+                vertical = 18.dp
+            )
     ) {
 
         Spacer(
             modifier = Modifier.height(34.dp)
         )
+
         // HEADER
 
         Text(
@@ -109,6 +112,7 @@ fun HomeScreen(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
+
                     Text(
                         text = "Nuevo diagnóstico",
                         style = MaterialTheme.typography.labelLarge
@@ -155,6 +159,8 @@ fun HomeScreen(
             modifier = Modifier.height(28.dp)
         )
 
+        // HERRAMIENTAS
+
         Text(
             text = "Herramientas",
             style = MaterialTheme.typography.titleLarge,
@@ -181,6 +187,13 @@ fun HomeScreen(
             title = "Actividades",
             description = "Registra riegos, tratamientos y labores.",
             onClick = onActividadesClick
+        )
+
+        // NUEVA HERRAMIENTA
+        ToolCard(
+            title = "Perfil y usuarios",
+            description = "Administra los usuarios registrados en AgroSense.",
+            onClick = onPerfilClick
         )
 
         Spacer(

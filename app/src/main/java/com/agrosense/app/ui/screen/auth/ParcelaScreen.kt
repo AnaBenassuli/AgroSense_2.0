@@ -45,6 +45,17 @@ fun ParcelaScreen(
         mutableStateOf(false)
     }
 
+    // Si es null = estamos creando.
+    // Si tiene una parcela = estamos editando.
+    var parcelaEditando by remember {
+        mutableStateOf<Parcela?>(null)
+    }
+
+    // Parcela que se quiere eliminar.
+    var parcelaAEliminar by remember {
+        mutableStateOf<Parcela?>(null)
+    }
+
     var nombre by remember {
         mutableStateOf("")
     }
@@ -57,12 +68,37 @@ fun ParcelaScreen(
         mutableStateOf("")
     }
 
+    fun limpiarFormulario() {
+        nombre = ""
+        ubicacion = ""
+        cultivo = ""
+        parcelaEditando = null
+    }
+
+    fun abrirFormularioNuevo() {
+        limpiarFormulario()
+        mostrarFormulario = true
+    }
+
+    fun abrirFormularioEditar(parcela: Parcela) {
+        parcelaEditando = parcela
+        nombre = parcela.nombre
+        ubicacion = parcela.ubicacion
+        cultivo = parcela.cultivo
+        mostrarFormulario = true
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp, vertical = 18.dp)
     ) {
 
+        Spacer(
+            modifier = Modifier.height(34.dp)
+        )
+
+        // HEADER
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -95,9 +131,10 @@ fun ParcelaScreen(
             modifier = Modifier.height(20.dp)
         )
 
+        // CREATE
         Button(
             onClick = {
-                mostrarFormulario = true
+                abrirFormularioNuevo()
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -114,6 +151,7 @@ fun ParcelaScreen(
             modifier = Modifier.height(24.dp)
         )
 
+        // READ
         if (parcelas.isEmpty()) {
 
             Card(
@@ -149,7 +187,11 @@ fun ParcelaScreen(
         } else {
 
             Text(
-                text = "${parcelas.size} parcelas registradas",
+                text = if (parcelas.size == 1) {
+                    "1 parcela registrada"
+                } else {
+                    "${parcelas.size} parcelas registradas"
+                },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -159,6 +201,7 @@ fun ParcelaScreen(
             )
 
             LazyColumn(
+                modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
 
@@ -171,8 +214,15 @@ fun ParcelaScreen(
 
                     ParcelaCard(
                         parcela = parcela,
+
+                        // UPDATE
+                        onEditClick = {
+                            abrirFormularioEditar(parcela)
+                        },
+
+                        // DELETE
                         onDeleteClick = {
-                            viewModel.eliminarParcela(parcela)
+                            parcelaAEliminar = parcela
                         }
                     )
                 }
@@ -180,18 +230,27 @@ fun ParcelaScreen(
         }
     }
 
+    // =========================================================
+    // FORMULARIO CREATE / UPDATE
+    // =========================================================
+
     if (mostrarFormulario) {
 
         AlertDialog(
             onDismissRequest = {
                 mostrarFormulario = false
+                limpiarFormulario()
             },
 
             shape = RoundedCornerShape(18.dp),
 
             title = {
                 Text(
-                    text = "Nueva parcela",
+                    text = if (parcelaEditando == null) {
+                        "Nueva parcela"
+                    } else {
+                        "Editar parcela"
+                    },
                     fontWeight = FontWeight.Bold
                 )
             },
@@ -263,21 +322,43 @@ fun ParcelaScreen(
                             ubicacion.isNotBlank()
                         ) {
 
-                            viewModel.registrarParcela(
-                                nombre = nombre.trim(),
-                                ubicacion = ubicacion.trim(),
-                                cultivo = cultivo.trim()
-                            )
+                            val parcelaActual = parcelaEditando
 
-                            nombre = ""
-                            cultivo = ""
-                            ubicacion = ""
+                            if (parcelaActual == null) {
+
+                                // CREATE
+                                viewModel.registrarParcela(
+                                    nombre = nombre.trim(),
+                                    ubicacion = ubicacion.trim(),
+                                    cultivo = cultivo.trim()
+                                )
+
+                            } else {
+
+                                // UPDATE
+                                val parcelaActualizada = parcelaActual.copy(
+                                    nombre = nombre.trim(),
+                                    ubicacion = ubicacion.trim(),
+                                    cultivo = cultivo.trim()
+                                )
+
+                                viewModel.actualizarParcela(
+                                    parcelaActualizada
+                                )
+                            }
 
                             mostrarFormulario = false
+                            limpiarFormulario()
                         }
                     }
                 ) {
-                    Text("Guardar")
+                    Text(
+                        text = if (parcelaEditando == null) {
+                            "Guardar"
+                        } else {
+                            "Actualizar"
+                        }
+                    )
                 }
             },
 
@@ -286,6 +367,73 @@ fun ParcelaScreen(
                 TextButton(
                     onClick = {
                         mostrarFormulario = false
+                        limpiarFormulario()
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // =========================================================
+    // CONFIRMACIÓN DELETE
+    // =========================================================
+
+    parcelaAEliminar?.let { parcela ->
+
+        AlertDialog(
+            onDismissRequest = {
+                parcelaAEliminar = null
+            },
+
+            shape = RoundedCornerShape(18.dp),
+
+            title = {
+                Text(
+                    text = "Eliminar parcela",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+
+            text = {
+                Column {
+
+                    Text(
+                        text = "¿Estás seguro de que deseas eliminar \"${parcela.nombre}\"?"
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+
+                    Text(
+                        text = "Esta acción no se puede deshacer.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+
+            confirmButton = {
+
+                Button(
+                    onClick = {
+
+                        viewModel.eliminarParcela(parcela)
+
+                        parcelaAEliminar = null
+                    }
+                ) {
+                    Text("Eliminar")
+                }
+            },
+
+            dismissButton = {
+
+                TextButton(
+                    onClick = {
+                        parcelaAEliminar = null
                     }
                 ) {
                     Text("Cancelar")
@@ -298,6 +446,7 @@ fun ParcelaScreen(
 @Composable
 private fun ParcelaCard(
     parcela: Parcela,
+    onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
 
@@ -382,10 +531,22 @@ private fun ParcelaCard(
                 modifier = Modifier.height(16.dp)
             )
 
+            // UPDATE + DELETE
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+
+                OutlinedButton(
+                    onClick = onEditClick
+                ) {
+                    Text("Editar")
+                }
+
+                Spacer(
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
 
                 TextButton(
                     onClick = onDeleteClick
