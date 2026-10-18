@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.agrosense.app.ui.components.AgroSenseLogo
+import com.agrosense.app.ui.viewmodel.EstadoAcceso
 
 enum class UserType(
     val label: String
@@ -41,21 +42,22 @@ enum class UserType(
     COOPERATIVE("Cooperativa")
 }
 
-data class UserAccount(
-    val nombre: String,
-    val correo: String,
-    val tipoUsuario: UserType
-)
-
 private enum class AuthMode {
     LOGIN,
     REGISTER
 }
 
+private const val LONGITUD_MINIMA_CONTRASENA = 8
+
 @Composable
 fun AuthGate(
-    onAuthenticated: (UserAccount) -> Unit
+    estado: EstadoAcceso,
+    onIniciarSesion: (correo: String, contrasena: String) -> Unit,
+    onRegistrar: (nombre: String, correo: String, contrasena: String, tipoUsuario: String) -> Unit,
+    onLimpiarError: () -> Unit
 ) {
+
+    val procesando = estado is EstadoAcceso.Procesando
 
     var mode by remember {
         mutableStateOf(AuthMode.LOGIN)
@@ -87,6 +89,15 @@ fun AuthGate(
 
     var mensajeError by remember {
         mutableStateOf<String?>(null)
+    }
+
+    // Errores de validación locales primero; si no hay, el de la base (credenciales, correo en uso)
+    val errorVisible =
+        mensajeError ?: (estado as? EstadoAcceso.Error)?.mensaje
+
+    fun limpiarErrores() {
+        mensajeError = null
+        onLimpiarError()
     }
 
     Column(
@@ -181,7 +192,7 @@ fun AuthGate(
                         value = nombre,
                         onValueChange = {
                             nombre = it
-                            mensajeError = null
+                            limpiarErrores()
                         },
                         label = {
                             Text("Nombre")
@@ -205,7 +216,7 @@ fun AuthGate(
                     value = correo,
                     onValueChange = {
                         correo = it
-                        mensajeError = null
+                        limpiarErrores()
                     },
                     label = {
                         Text("Correo electrónico")
@@ -228,7 +239,7 @@ fun AuthGate(
                     value = password,
                     onValueChange = {
                         password = it
-                        mensajeError = null
+                        limpiarErrores()
                     },
                     label = {
                         Text("Contraseña")
@@ -252,7 +263,7 @@ fun AuthGate(
                         value = confirmPassword,
                         onValueChange = {
                             confirmPassword = it
-                            mensajeError = null
+                            limpiarErrores()
                         },
                         label = {
                             Text("Confirmar contraseña")
@@ -317,7 +328,7 @@ fun AuthGate(
                     }
                 }
 
-                mensajeError?.let { error ->
+                errorVisible?.let { error ->
 
                     Spacer(
                         modifier = Modifier.height(14.dp)
@@ -361,13 +372,9 @@ fun AuthGate(
 
                             } else {
 
-                                onAuthenticated(
-                                    UserAccount(
-                                        nombre = "Usuario",
-                                        correo = correo.trim(),
-                                        tipoUsuario =
-                                            UserType.PRODUCER
-                                    )
+                                onIniciarSesion(
+                                    correo.trim(),
+                                    password
                                 )
                             }
 
@@ -385,9 +392,9 @@ fun AuthGate(
                                         "Ingresa tu correo electrónico."
                                 }
 
-                                password.length < 4 -> {
+                                password.length < LONGITUD_MINIMA_CONTRASENA -> {
                                     mensajeError =
-                                        "La contraseña debe tener al menos 4 caracteres."
+                                        "La contraseña debe tener al menos $LONGITUD_MINIMA_CONTRASENA caracteres."
                                 }
 
                                 password != confirmPassword -> {
@@ -397,18 +404,17 @@ fun AuthGate(
 
                                 else -> {
 
-                                    onAuthenticated(
-                                        UserAccount(
-                                            nombre = nombre.trim(),
-                                            correo = correo.trim(),
-                                            tipoUsuario =
-                                                tipoUsuario
-                                        )
+                                    onRegistrar(
+                                        nombre.trim(),
+                                        correo.trim(),
+                                        password,
+                                        tipoUsuario.label
                                     )
                                 }
                             }
                         }
                     },
+                    enabled = !procesando,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
@@ -417,10 +423,10 @@ fun AuthGate(
 
                     Text(
                         text =
-                            if (mode == AuthMode.LOGIN) {
-                                "Iniciar sesión"
-                            } else {
-                                "Crear cuenta"
+                            when {
+                                procesando -> "Verificando..."
+                                mode == AuthMode.LOGIN -> "Iniciar sesión"
+                                else -> "Crear cuenta"
                             },
                         style = MaterialTheme.typography.labelLarge
                     )
@@ -459,7 +465,7 @@ fun AuthGate(
                                     AuthMode.LOGIN
                                 }
 
-                            mensajeError = null
+                            limpiarErrores()
                             password = ""
                             confirmPassword = ""
                         }

@@ -23,8 +23,8 @@ import com.agrosense.app.data.local.entity.Usuario
         Actividad::class,
         Sensor::class
     ],
-    version = 1,
-    exportSchema = false
+    version = 2,
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class AgroSenseDatabase : RoomDatabase() {

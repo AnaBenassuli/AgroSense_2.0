@@ -34,6 +34,15 @@ android {
     buildFeatures {
         compose = true
     }
+    sourceSets {
+        // MigrationTestHelper lee los esquemas exportados desde los assets de androidTest
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
+}
+
+ksp {
+    // Un JSON por versión de la base en app/schemas/, para versionar el esquema y probar migraciones
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -56,6 +65,7 @@ dependencies {
     implementation("androidx.room:room-runtime:2.7.2")
     implementation("androidx.room:room-ktx:2.7.2")
     ksp("androidx.room:room-compiler:2.7.2")
+    androidTestImplementation("androidx.room:room-testing:2.7.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2")
 
     // Clasificación de enfermedades en el dispositivo (modelo en assets/)
