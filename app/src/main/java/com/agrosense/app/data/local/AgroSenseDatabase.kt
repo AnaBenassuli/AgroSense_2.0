@@ -23,7 +23,7 @@ import com.agrosense.app.data.local.entity.Usuario
         Actividad::class,
         Sensor::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

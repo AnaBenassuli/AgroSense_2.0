@@ -17,6 +17,20 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
     }
 }
 
+/**
+ * v2 -> v3: cada diagnóstico dice a qué módulo pertenece (cultivo o ganado).
+ *
+ * Hasta ahora solo existía el de cultivos, así que todas las filas existentes quedan como CULTIVO.
+ */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE diagnosticos ADD COLUMN modulo TEXT NOT NULL DEFAULT 'CULTIVO'"
+        )
+    }
+}
+
 val TODAS_LAS_MIGRACIONES = arrayOf(
-    MIGRATION_1_2
+    MIGRATION_1_2,
+    MIGRATION_2_3
 )

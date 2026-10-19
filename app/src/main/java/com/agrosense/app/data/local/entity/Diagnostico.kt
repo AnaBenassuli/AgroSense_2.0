@@ -1,5 +1,6 @@
 package com.agrosense.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -26,5 +27,7 @@ data class Diagnostico(
     val resultado: String,
     val confianza: Float,
     val top3: List<Prediccion> = emptyList(),
-    val observaciones: String? = null
+    val observaciones: String? = null,
+    @ColumnInfo(defaultValue = "CULTIVO")
+    val modulo: Modulo = Modulo.CULTIVO
 )

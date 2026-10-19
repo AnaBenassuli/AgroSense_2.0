@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.agrosense.app.data.local.entity.Diagnostico
+import com.agrosense.app.data.local.entity.Modulo
 import com.agrosense.app.data.local.entity.Prediccion
 import com.agrosense.app.ml.ImageClassifier
 import com.agrosense.app.ml.porcentaje
@@ -54,11 +55,16 @@ import com.agrosense.app.ui.viewmodel.ParcelaViewModel
 import java.io.File
 import java.io.FileOutputStream
 
+/**
+ * @param modulo con qué modelo se analizan las fotos y en qué módulo se guardan los diagnósticos
+ *   nuevos. Por defecto CULTIVO; la pantalla de selección de módulo (tarea 31) pasa GANADO.
+ */
 @Composable
 fun DiagnosticoScreen(
     diagnosticoViewModel: DiagnosticoViewModel,
     parcelaViewModel: ParcelaViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    modulo: Modulo = Modulo.CULTIVO
 ) {
 
     val context = LocalContext.current
@@ -125,8 +131,8 @@ fun DiagnosticoScreen(
     // Clasificador en el dispositivo. Si el modelo no está en assets/,
     // `disponible` queda en false y el botón de análisis se deshabilita:
     // el formulario sigue funcionando a mano.
-    val clasificador = remember(context) {
-        ImageClassifier(context)
+    val clasificador = remember(context, modulo) {
+        ImageClassifier(context, modulo)
     }
 
     DisposableEffect(clasificador) {
@@ -765,7 +771,9 @@ fun DiagnosticoScreen(
                                                     .trim()
                                                     .ifBlank {
                                                         null
-                                                    }
+                                                    },
+                                            modulo =
+                                                modulo
                                         )
                                     )
 

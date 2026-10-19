@@ -1,6 +1,7 @@
 package com.agrosense.app.data.local.converter
 
 import androidx.room.TypeConverter
+import com.agrosense.app.data.local.entity.Modulo
 import com.agrosense.app.data.local.entity.Prediccion
 
 class Converters {
@@ -38,4 +39,12 @@ class Converters {
             )
         }
     }
+
+    @TypeConverter
+    fun moduloToString(value: Modulo): String = value.name
+
+    // Lo desconocido se lee como CULTIVO, que es lo que eran todas las filas anteriores a la v3
+    @TypeConverter
+    fun stringToModulo(value: String?): Modulo =
+        Modulo.entries.firstOrNull { it.name == value } ?: Modulo.CULTIVO
 }
