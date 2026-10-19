@@ -49,6 +49,7 @@ import com.agrosense.app.data.local.entity.Diagnostico
 import com.agrosense.app.data.local.entity.Modulo
 import com.agrosense.app.data.local.entity.Prediccion
 import com.agrosense.app.ml.ImageClassifier
+import com.agrosense.app.ml.NombresClases
 import com.agrosense.app.ml.porcentaje
 import com.agrosense.app.ui.viewmodel.DiagnosticoViewModel
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
@@ -231,7 +232,7 @@ fun DiagnosticoScreen(
             return
         }
 
-        resultado = analisis.label
+        resultado = NombresClases.legible(analisis.label)
 
         confianza = (analisis.confidence * 100f)
             .toInt()
@@ -241,7 +242,7 @@ fun DiagnosticoScreen(
 
         mensajeAnalisis = analisis.top3
             .joinToString(" · ") { p ->
-                "${p.clase} ${p.porcentaje()}"
+                "${NombresClases.legible(p.clase)} ${p.porcentaje()}"
             }
     }
 
@@ -274,8 +275,9 @@ fun DiagnosticoScreen(
         moduloActual =
             diagnostico.modulo
 
+        // Los diagnósticos guardados antes de la traducción tienen la etiqueta en inglés
         resultado =
-            diagnostico.resultado
+            NombresClases.legible(diagnostico.resultado)
 
         confianza =
             (diagnostico.confianza * 100f)
@@ -962,7 +964,7 @@ fun DiagnosticoScreen(
 
                     Text(
                         text =
-                            "¿Deseas eliminar el diagnóstico \"${diagnostico.resultado}\"?"
+                            "¿Deseas eliminar el diagnóstico \"${NombresClases.legible(diagnostico.resultado)}\"?"
                     )
 
                     Spacer(
@@ -1053,7 +1055,7 @@ private fun DiagnosticoCard(
 
             Text(
                 text =
-                    diagnostico.resultado,
+                    NombresClases.legible(diagnostico.resultado),
                 style =
                     MaterialTheme.typography.titleMedium,
                 fontWeight =
