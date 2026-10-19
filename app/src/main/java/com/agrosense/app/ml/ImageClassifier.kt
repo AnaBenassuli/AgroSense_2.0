@@ -3,6 +3,7 @@ package com.agrosense.app.ml
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
+import com.agrosense.app.data.local.entity.Modulo
 import com.agrosense.app.data.local.entity.Prediccion
 import org.tensorflow.lite.Interpreter
 import java.io.Closeable
@@ -13,24 +14,41 @@ import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 import java.util.Locale
 
+/** Modelo y etiquetas de un módulo, como se llaman en assets/. */
+data class ArchivosModelo(val modelo: String, val etiquetas: String) {
+    companion object {
+        fun de(modulo: Modulo): ArchivosModelo = when (modulo) {
+            Modulo.CULTIVO -> ArchivosModelo("agrosense_crop_model.tflite", "labels.txt")
+            Modulo.GANADO -> ArchivosModelo("agrosense_ganado_model.tflite", "labels_ganado.txt")
+        }
+    }
+}
+
 /**
- * Clasificador de enfermedades de cultivo que corre en el dispositivo.
+ * Clasificador de enfermedades que corre en el dispositivo, uno por [Modulo]:
+ * cultivos (hojas de maíz, papa y tomate) o ganado (dermatosis nodular).
  *
  * Usa el `Interpreter` de TensorFlow Lite directamente, no la Task Library:
  * ésta exige que el .tflite lleve metadata embebida, y la herramienta que la
  * escribe (`tflite-support`) ya no publica versiones compatibles con el Python
  * que usa Colab hoy. Con el intérprete, el modelo que exporta el notebook sirve
- * tal cual y las etiquetas salen de assets/[ETIQUETAS].
+ * tal cual y las etiquetas salen del .txt de [ArchivosModelo].
  *
  * A cambio, el preprocesamiento pasa a ser responsabilidad de esta clase: ver
- * [prepararEntrada].
+ * [prepararEntrada]. Los dos notebooks entrenan con MobileNetV2, así que el
+ * preprocesamiento es el mismo para ambos módulos.
  *
  * Si el modelo todavía no está en assets, [disponible] queda en false y
  * [classify] devuelve un resultado vacío en lugar de tumbar la app, para que el
  * resto del flujo se pueda probar sin el .tflite.
  */
-class ImageClassifier(context: Context) : Closeable {
+class ImageClassifier(
+    context: Context,
+    val modulo: Modulo = Modulo.CULTIVO
+) : Closeable {
 
+    // Antes que las etiquetas: cargarEtiquetas lo necesita durante la inicialización
+    private val archivos = ArchivosModelo.de(modulo)
     private val etiquetas: List<String> = cargarEtiquetas(context)
     private var interprete: Interpreter? = null
     private var ladoEntrada: Int = 0
@@ -55,17 +73,20 @@ class ImageClassifier(context: Context) : Closeable {
                 // sin provocar ningún error. Preferimos no clasificar a mentir.
                 Log.e(
                     TAG,
-                    "$ETIQUETAS tiene ${etiquetas.size} etiquetas pero el modelo " +
+                    "${archivos.etiquetas} tiene ${etiquetas.size} etiquetas pero el modelo " +
                         "devuelve $numClases clases. Clasificador desactivado."
                 )
                 creado.close()
                 null
             } else {
-                Log.i(TAG, "Modelo cargado: entrada ${ladoEntrada}x$ladoEntrada, $numClases clases.")
+                Log.i(
+                    TAG,
+                    "Modelo de $modulo cargado: entrada ${ladoEntrada}x$ladoEntrada, $numClases clases."
+                )
                 creado
             }
         } catch (e: Exception) {
-            Log.w(TAG, "No se pudo cargar $MODELO: ${e.message}")
+            Log.w(TAG, "No se pudo cargar ${archivos.modelo}: ${e.message}")
             null
         }
     }
@@ -146,24 +167,24 @@ class ImageClassifier(context: Context) : Closeable {
     }
 
     /**
-     * El intérprete solo devuelve índices, así que el nombre sale siempre de
-     * [ETIQUETAS]. El init ya garantiza que, si el archivo existe, su tamaño
-     * coincide con el número de salidas del modelo.
+     * El intérprete solo devuelve índices, así que el nombre sale siempre del
+     * archivo de etiquetas. El init ya garantiza que, si el archivo existe, su
+     * tamaño coincide con el número de salidas del modelo.
      */
     private fun nombreLegible(indice: Int): String =
         etiquetas.getOrNull(indice) ?: "Clase $indice"
 
     private fun cargarEtiquetas(context: Context): List<String> = try {
-        context.assets.open(ETIQUETAS).bufferedReader().useLines { lineas ->
+        context.assets.open(archivos.etiquetas).bufferedReader().useLines { lineas ->
             lineas.map { it.trim() }.filter { it.isNotEmpty() }.toList()
         }
     } catch (e: Exception) {
-        Log.w(TAG, "No se pudo leer $ETIQUETAS: ${e.message}")
+        Log.w(TAG, "No se pudo leer ${archivos.etiquetas}: ${e.message}")
         emptyList()
     }
 
     private fun cargarModelo(context: Context): MappedByteBuffer =
-        context.assets.openFd(MODELO).use { descriptor ->
+        context.assets.openFd(archivos.modelo).use { descriptor ->
             FileInputStream(descriptor.fileDescriptor).use { entrada ->
                 entrada.channel.map(
                     FileChannel.MapMode.READ_ONLY,
@@ -175,8 +196,6 @@ class ImageClassifier(context: Context) : Closeable {
 
     companion object {
         private const val TAG = "ImageClassifier"
-        const val MODELO = "agrosense_crop_model.tflite"
-        const val ETIQUETAS = "labels.txt"
         private const val MAX_RESULTADOS = 3
         private const val UMBRAL_MINIMO = 0.01f
         private const val NUM_HILOS = 2

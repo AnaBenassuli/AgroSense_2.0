@@ -1,5 +1,6 @@
 package com.agrosense.app.data.local.converter
 
+import com.agrosense.app.data.local.entity.Modulo
 import com.agrosense.app.data.local.entity.Prediccion
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -41,5 +42,20 @@ class ConvertersTest {
 
         assertEquals(1, recuperado.size)
         assertEquals(0.5f, recuperado.first().confianza, 0.0001f)
+    }
+
+    @Test
+    fun `el modulo se guarda con su nombre y vuelve igual`() {
+        Modulo.entries.forEach { modulo ->
+            assertEquals(modulo.name, converters.moduloToString(modulo))
+            assertEquals(modulo, converters.stringToModulo(converters.moduloToString(modulo)))
+        }
+    }
+
+    @Test
+    fun `un modulo desconocido o nulo se lee como cultivo`() {
+        // Las filas anteriores a la v3 son todas de cultivo; un valor raro no debe tumbar la lectura
+        assertEquals(Modulo.CULTIVO, converters.stringToModulo(null))
+        assertEquals(Modulo.CULTIVO, converters.stringToModulo("ACUICULTURA"))
     }
 }

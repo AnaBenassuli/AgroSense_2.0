@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.agrosense.app.data.local.entity.Diagnostico
 import com.agrosense.app.data.local.entity.Parcela
+import com.agrosense.app.ml.NombresClases
 import com.agrosense.app.ui.viewmodel.DiagnosticoViewModel
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
 import kotlinx.coroutines.flow.flowOf
@@ -334,7 +335,7 @@ private fun DiagnosticoHistoryCard(
                     ) {
 
                         Text(
-                            text = diagnostico.resultado,
+                            text = NombresClases.legible(diagnostico.resultado),
                             style =
                                 MaterialTheme.typography
                                     .titleLarge,
