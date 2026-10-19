@@ -2,6 +2,7 @@ package com.agrosense.app.data.local
 
 import android.content.Context
 import androidx.room.Room
+import com.agrosense.app.data.local.migration.TODAS_LAS_MIGRACIONES
 
 object DatabaseProvider {
 
@@ -15,7 +16,9 @@ object DatabaseProvider {
                 context.applicationContext,
                 AgroSenseDatabase::class.java,
                 "agrosense.db"
-            ).build()
+            )
+                .addMigrations(*TODAS_LAS_MIGRACIONES)
+                .build()
 
             INSTANCE = instance
             instance

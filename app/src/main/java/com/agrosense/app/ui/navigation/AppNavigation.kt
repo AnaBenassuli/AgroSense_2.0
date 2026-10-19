@@ -1,6 +1,9 @@
 package com.agrosense.app.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -22,6 +25,7 @@ import com.agrosense.app.ui.viewmodel.ActividadViewModel
 import com.agrosense.app.ui.viewmodel.ActividadViewModelFactory
 import com.agrosense.app.ui.viewmodel.DiagnosticoViewModel
 import com.agrosense.app.ui.viewmodel.DiagnosticoViewModelFactory
+import com.agrosense.app.ui.viewmodel.EstadoAcceso
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
 import com.agrosense.app.ui.viewmodel.ParcelaViewModelFactory
 import com.agrosense.app.ui.viewmodel.UsuarioViewModel
@@ -95,8 +99,13 @@ fun AppNavigation() {
         // LOGIN
         composable(Screen.Login.route) {
 
-            AuthGate(
-                onAuthenticated = {
+            val estadoAcceso by usuarioViewModel
+                .estadoAcceso
+                .collectAsState()
+
+            LaunchedEffect(estadoAcceso) {
+
+                if (estadoAcceso is EstadoAcceso.Autenticado) {
 
                     navController.navigate(
                         Screen.Home.route
@@ -109,6 +118,13 @@ fun AppNavigation() {
                         }
                     }
                 }
+            }
+
+            AuthGate(
+                estado = estadoAcceso,
+                onIniciarSesion = usuarioViewModel::iniciarSesion,
+                onRegistrar = usuarioViewModel::registrarCuenta,
+                onLimpiarError = usuarioViewModel::limpiarErrorAcceso
             )
         }
 
