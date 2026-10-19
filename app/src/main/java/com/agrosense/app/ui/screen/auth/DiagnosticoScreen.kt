@@ -56,8 +56,9 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * @param modulo con qué modelo se analizan las fotos y en qué módulo se guardan los diagnósticos
- *   nuevos. Por defecto CULTIVO; la pantalla de selección de módulo (tarea 31) pasa GANADO.
+ * @param modulo módulo con el que abre el formulario. Dentro del formulario se puede cambiar con
+ *   el selector Cultivo | Ganado; la pantalla de selección de módulo (tarea 31) puede pasar
+ *   GANADO aquí para que abra directo en ganado.
  */
 @Composable
 fun DiagnosticoScreen(
@@ -131,8 +132,13 @@ fun DiagnosticoScreen(
     // Clasificador en el dispositivo. Si el modelo no está en assets/,
     // `disponible` queda en false y el botón de análisis se deshabilita:
     // el formulario sigue funcionando a mano.
-    val clasificador = remember(context, modulo) {
-        ImageClassifier(context, modulo)
+    var moduloActual by remember {
+        mutableStateOf(modulo)
+    }
+
+    // Uno por módulo: al cambiar de módulo se crea el otro y el DisposableEffect cierra el anterior
+    val clasificador = remember(context, moduloActual) {
+        ImageClassifier(context, moduloActual)
     }
 
     DisposableEffect(clasificador) {
@@ -239,6 +245,19 @@ fun DiagnosticoScreen(
             }
     }
 
+    /**
+     * Cambia el modelo con el que se analiza. El resultado anterior se descarta porque venía del
+     * otro modelo (etiquetas de cultivo en un diagnóstico de ganado, o al revés); la foto se queda.
+     */
+    fun cambiarModulo(nuevo: Modulo) {
+        if (nuevo == moduloActual) return
+        moduloActual = nuevo
+        resultado = ""
+        confianza = ""
+        top3Detectado = emptyList()
+        mensajeAnalisis = null
+    }
+
     fun abrirNuevoDiagnostico() {
         limpiarFormulario()
         mostrarFormulario = true
@@ -250,6 +269,10 @@ fun DiagnosticoScreen(
 
         diagnosticoEditando =
             diagnostico
+
+        // Se edita con el modelo con el que se hizo
+        moduloActual =
+            diagnostico.modulo
 
         resultado =
             diagnostico.resultado
@@ -532,6 +555,69 @@ fun DiagnosticoScreen(
 
                     item {
 
+                        Row(
+                            modifier =
+                                Modifier.fillMaxWidth(),
+                            horizontalArrangement =
+                                Arrangement.spacedBy(
+                                    8.dp
+                                )
+                        ) {
+
+                            listOf(
+                                Modulo.CULTIVO to "Cultivo",
+                                Modulo.GANADO to "Ganado"
+                            ).forEach { (opcion, etiqueta) ->
+
+                                if (opcion == moduloActual) {
+                                    Button(
+                                        onClick = {},
+                                        modifier =
+                                            Modifier.weight(1f)
+                                    ) {
+                                        Text(etiqueta)
+                                    }
+                                } else {
+                                    OutlinedButton(
+                                        onClick = {
+                                            cambiarModulo(opcion)
+                                        },
+                                        modifier =
+                                            Modifier.weight(1f)
+                                    ) {
+                                        Text(etiqueta)
+                                    }
+                                }
+                            }
+                        }
+
+                        if (moduloActual == Modulo.GANADO) {
+
+                            Text(
+                                text =
+                                    "Toma la foto de cerca, al costado o lomo del animal. " +
+                                        "El resultado es orientativo: ante sospecha de " +
+                                        "dermatosis nodular, consulta a un veterinario.",
+                                style =
+                                    MaterialTheme
+                                        .typography
+                                        .bodySmall,
+                                color =
+                                    MaterialTheme
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                modifier =
+                                    Modifier.padding(
+                                        top = 6.dp
+                                    )
+                            )
+                        }
+
+                        Spacer(
+                            modifier =
+                                Modifier.height(12.dp)
+                        )
+
                         imagenBitmap?.let {
 
                             Image(
@@ -773,7 +859,7 @@ fun DiagnosticoScreen(
                                                         null
                                                     },
                                             modulo =
-                                                modulo
+                                                moduloActual
                                         )
                                     )
 
@@ -798,7 +884,9 @@ fun DiagnosticoScreen(
                                                     .trim()
                                                     .ifBlank {
                                                         null
-                                                    }
+                                                    },
+                                            modulo =
+                                                moduloActual
                                         )
                                     )
                             }
@@ -950,6 +1038,18 @@ private fun DiagnosticoCard(
             modifier =
                 Modifier.padding(18.dp)
         ) {
+
+            Text(
+                text =
+                    when (diagnostico.modulo) {
+                        Modulo.CULTIVO -> "Cultivo"
+                        Modulo.GANADO -> "Ganado"
+                    },
+                style =
+                    MaterialTheme.typography.labelSmall,
+                color =
+                    MaterialTheme.colorScheme.primary
+            )
 
             Text(
                 text =
