@@ -46,6 +46,7 @@ import com.agrosense.app.R
 import com.agrosense.app.ui.theme.AgroBorder
 import com.agrosense.app.ui.theme.AgroGreen
 import com.agrosense.app.ui.theme.AgroGreenDark
+import com.agrosense.app.ui.theme.AgroGreenPressed
 import com.agrosense.app.ui.theme.AgroGreenSoft
 import com.agrosense.app.ui.theme.AgroSuccess
 import com.agrosense.app.ui.theme.AgroSurface
@@ -576,7 +577,7 @@ private fun PasoGuia(
                         .background(
                             when {
                                 !habilitado -> AgroSurfaceAlt
-                                actual -> AgroGreen
+                                actual -> AgroGreenPressed
                                 else -> AgroGreenSoft
                             }
                         )

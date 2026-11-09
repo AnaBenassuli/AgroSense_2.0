@@ -45,6 +45,7 @@ import com.agrosense.app.ui.components.OpcionTipoUsuario
 import androidx.compose.ui.graphics.Color
 import com.agrosense.app.ui.theme.AgroGreen
 import com.agrosense.app.ui.theme.AgroGreenDark
+import com.agrosense.app.ui.theme.AgroGreenPressed
 import com.agrosense.app.ui.theme.AgroSuccess
 import com.agrosense.app.ui.theme.AgroTextPrimary
 import com.agrosense.app.ui.viewmodel.EstadoAcceso
@@ -625,7 +626,7 @@ private fun DialogoTiposUsuario(
                     // Un tono de verde distinto por tipo, del más claro al más oscuro
                     val colorBloque =
                         when (tipo) {
-                            UserType.PRODUCER -> AgroGreen
+                            UserType.PRODUCER -> AgroGreenPressed
                             UserType.AGRONOMIST -> AgroSuccess
                             UserType.COOPERATIVE -> AgroGreenDark
                         }

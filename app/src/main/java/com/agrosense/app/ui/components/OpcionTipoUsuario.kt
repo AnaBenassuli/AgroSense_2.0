@@ -1,5 +1,6 @@
 package com.agrosense.app.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,21 +19,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.agrosense.app.ui.screen.auth.UserType
-import com.agrosense.app.ui.theme.AgroGreen
 import com.agrosense.app.ui.theme.AgroGreenDark
+import com.agrosense.app.ui.theme.AgroGreenPressed
 import com.agrosense.app.ui.theme.AgroSuccess
+import com.agrosense.app.ui.theme.AgroTextSecondary
 
-/** Mismo tono de verde que en la ventana de ayuda "Tipos de usuario". */
+/**
+ * Mismo tono de verde que en la ventana de ayuda "Tipos de usuario".
+ * Los tres pasan el contraste mínimo con texto blanco (4.5:1).
+ */
 fun colorTipoUsuario(tipo: UserType): Color =
     when (tipo) {
-        UserType.PRODUCER -> AgroGreen
+        UserType.PRODUCER -> AgroGreenPressed
         UserType.AGRONOMIST -> AgroSuccess
         UserType.COOPERATIVE -> AgroGreenDark
     }
 
 /**
  * Una opción de tipo de usuario con su explicación. Se usa en el registro y en Mi perfil.
- * Cada tipo tiene su verde; la opción elegida se ve con el color completo y las demás más tenues.
+ * - Elegida: fondo de su verde y letra blanca.
+ * - No elegida: fondo muy claro de su verde y letra oscura, para que se lea bien
+ *   (antes era el mismo verde transparente con letra blanca y casi no se leía).
  */
 @Composable
 fun OpcionTipoUsuario(
@@ -52,9 +59,15 @@ fun OpcionTipoUsuario(
                 if (seleccionado) {
                     color
                 } else {
-                    color.copy(alpha = 0.55f)
+                    color.copy(alpha = 0.06f)
                 }
         ),
+        border =
+            if (seleccionado) {
+                null
+            } else {
+                BorderStroke(1.dp, color.copy(alpha = 0.35f))
+            },
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (seleccionado) 4.dp else 0.dp
         )
@@ -70,7 +83,7 @@ fun OpcionTipoUsuario(
                 onClick = onClick,
                 colors = RadioButtonDefaults.colors(
                     selectedColor = Color.White,
-                    unselectedColor = Color.White.copy(alpha = 0.8f)
+                    unselectedColor = color
                 )
             )
 
@@ -82,13 +95,13 @@ fun OpcionTipoUsuario(
                     text = tipo.label,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = if (seleccionado) Color.White else color
                 )
 
                 Text(
                     text = tipo.descripcion,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.9f)
+                    color = if (seleccionado) Color.White else AgroTextSecondary
                 )
             }
         }
