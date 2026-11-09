@@ -7,29 +7,23 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -43,14 +37,44 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.agrosense.app.R
 import com.agrosense.app.data.local.entity.Diagnostico
 import com.agrosense.app.data.local.entity.Modulo
 import com.agrosense.app.data.local.entity.Prediccion
 import com.agrosense.app.ml.ImageClassifier
 import com.agrosense.app.ml.NombresClases
 import com.agrosense.app.ml.porcentaje
+import com.agrosense.app.ui.components.AgroBanner
+import com.agrosense.app.ui.components.AgroCard
+import com.agrosense.app.ui.components.AgroCardActions
+import com.agrosense.app.ui.components.AgroDialog
+import com.agrosense.app.ui.components.AgroEmptyState
+import com.agrosense.app.ui.components.AgroIconBadge
+import com.agrosense.app.ui.components.AgroOverline
+import com.agrosense.app.ui.components.AgroPrimaryButton
+import com.agrosense.app.ui.components.AgroProgressBar
+import com.agrosense.app.ui.components.AgroScreen
+import com.agrosense.app.ui.components.AgroSecondaryButton
+import com.agrosense.app.ui.components.AgroSectionHeader
+import com.agrosense.app.ui.components.AgroSegmented
+import com.agrosense.app.ui.components.AgroSelectField
+import com.agrosense.app.ui.components.AgroStatusChip
+import com.agrosense.app.ui.components.AgroTextField
+import com.agrosense.app.ui.components.AgroTonalButton
+import com.agrosense.app.ui.components.AgroTone
+import com.agrosense.app.ui.components.AgroTopBar
+import com.agrosense.app.ui.components.FieldSpacer
+import com.agrosense.app.ui.theme.AgroBorder
+import com.agrosense.app.ui.theme.AgroGreen
+import com.agrosense.app.ui.theme.AgroGreenDark
+import com.agrosense.app.ui.theme.AgroSurfaceAlt
+import com.agrosense.app.ui.theme.AgroTextPrimary
+import com.agrosense.app.ui.theme.AgroTextSecondary
+import com.agrosense.app.ui.theme.AgroTextTertiary
 import com.agrosense.app.ui.viewmodel.DiagnosticoViewModel
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
 import java.io.File
@@ -93,10 +117,6 @@ fun DiagnosticoScreen(
                 ).value
 
         } ?: emptyList()
-
-    var mostrarMenuParcelas by remember {
-        mutableStateOf(false)
-    }
 
     var mostrarFormulario by remember {
         mutableStateOf(false)
@@ -304,205 +324,97 @@ fun DiagnosticoScreen(
         mostrarFormulario = true
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .padding(
-                horizontal = 20.dp,
-                vertical = 18.dp
+    AgroScreen(
+        bottomBar = {
+            AgroPrimaryButton(
+                text = "Nuevo diagnóstico",
+                icon = R.drawable.ic_camera,
+                onClick = { abrirNuevoDiagnostico() },
+                enabled = parcelaSeleccionadaId != null,
+                modifier = Modifier.fillMaxWidth()
             )
+        }
     ) {
 
-        Row(
-            modifier =
-                Modifier.fillMaxWidth(),
-            verticalAlignment =
-                Alignment.CenterVertically
-        ) {
-
-            TextButton(
-                onClick = onBackClick
-            ) {
-                Text("←")
-            }
-
-            Text(
-                text = "Diagnósticos",
-                style =
-                    MaterialTheme.typography.titleLarge,
-                fontWeight =
-                    FontWeight.Bold
-            )
-        }
-
-        Spacer(
-            modifier =
-                Modifier.height(8.dp)
+        AgroTopBar(
+            title = "Diagnósticos",
+            onBack = onBackClick
         )
 
         Text(
-            text =
-                "Registra y consulta los diagnósticos de tus cultivos.",
-            style =
-                MaterialTheme.typography.bodyMedium,
-            color =
-                MaterialTheme.colorScheme.onSurfaceVariant
+            text = "Registra y consulta los diagnósticos de tus cultivos.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = AgroTextSecondary
         )
 
-        Spacer(
-            modifier =
-                Modifier.height(20.dp)
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // SELECTOR DE PARCELA
+        AgroSelectField(
+            label = "Parcela",
+            valueText =
+                parcelas.firstOrNull {
+                    it.id == parcelaSeleccionadaId
+                }?.let {
+                    "${it.nombre} · ${it.cultivo}"
+                } ?: "Seleccionar parcela",
+            options = parcelas,
+            optionLabel = { "${it.nombre} · ${it.cultivo}" },
+            onSelect = { parcelaSeleccionadaId = it.id },
+            leadingIcon = R.drawable.ic_location,
+            enabled = parcelas.isNotEmpty(),
+            modifier = Modifier.fillMaxWidth()
         )
 
-        Text(
-            text = "Parcela",
-            style =
-                MaterialTheme.typography.labelMedium,
-            color =
-                MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(
-            modifier =
-                Modifier.height(6.dp)
-        )
-
-        Column {
-
-            OutlinedButton(
-                onClick = {
-                    mostrarMenuParcelas = true
-                },
-                modifier =
-                    Modifier.fillMaxWidth(),
-                shape =
-                    RoundedCornerShape(14.dp)
-            ) {
-
-                val nombre =
-                    parcelas.firstOrNull {
-                        it.id ==
-                                parcelaSeleccionadaId
-                    }?.nombre
-                        ?: "Seleccionar parcela"
-
-                Text(nombre)
-            }
-
-            DropdownMenu(
-                expanded =
-                    mostrarMenuParcelas,
-                onDismissRequest = {
-                    mostrarMenuParcelas = false
-                }
-            ) {
-
-                parcelas.forEach { parcela ->
-
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "${parcela.nombre} · ${parcela.cultivo}"
-                            )
-                        },
-                        onClick = {
-
-                            parcelaSeleccionadaId =
-                                parcela.id
-
-                            mostrarMenuParcelas =
-                                false
-                        }
-                    )
-                }
-            }
-        }
-
-        Spacer(
-            modifier =
-                Modifier.height(16.dp)
-        )
-
-        Button(
-            onClick = {
-                abrirNuevoDiagnostico()
-            },
-            enabled =
-                parcelaSeleccionadaId != null,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp),
-            shape =
-                RoundedCornerShape(14.dp)
-        ) {
-
-            Text("+ Nuevo diagnóstico")
-        }
-
-        Spacer(
-            modifier =
-                Modifier.height(24.dp)
-        )
+        Spacer(modifier = Modifier.height(24.dp))
 
         if (parcelas.isEmpty()) {
 
-            DiagnosticoEmptyCard(
-                titulo =
-                    "Primero agrega una parcela",
-                descripcion =
-                    "Necesitas una parcela para registrar diagnósticos."
+            AgroEmptyState(
+                icon = R.drawable.ic_location,
+                title = "Primero agrega una parcela",
+                description = "Necesitas una parcela para registrar diagnósticos."
             )
 
         } else if (
             diagnosticos.isEmpty()
         ) {
 
-            DiagnosticoEmptyCard(
-                titulo =
-                    "Sin diagnósticos",
-                descripcion =
-                    "Todavía no hay diagnósticos registrados para esta parcela."
+            AgroEmptyState(
+                icon = R.drawable.ic_leaf,
+                title = "Sin diagnósticos",
+                description = "Todavía no hay diagnósticos registrados para esta parcela."
             )
 
         } else {
 
-            Text(
-                text =
+            AgroSectionHeader(
+                title = "Diagnósticos de la parcela",
+                trailing =
                     if (diagnosticos.size == 1) {
-                        "1 diagnóstico registrado"
+                        "1 registrado"
                     } else {
-                        "${diagnosticos.size} diagnósticos registrados"
-                    },
-                style =
-                    MaterialTheme.typography.labelMedium,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                        "${diagnosticos.size} registrados"
+                    }
             )
 
-            Spacer(
-                modifier =
-                    Modifier.height(12.dp)
-            )
+            Spacer(modifier = Modifier.height(12.dp))
 
             LazyColumn(
-                modifier =
-                    Modifier.weight(1f),
-                verticalArrangement =
-                    Arrangement.spacedBy(12.dp)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
             ) {
 
                 items(
-                    items =
-                        diagnosticos,
+                    items = diagnosticos,
                     key = {
                         it.id
                     }
                 ) { diagnostico ->
 
                     DiagnosticoCard(
-                        diagnostico =
-                            diagnostico,
+                        diagnostico = diagnostico,
                         onEditClick = {
                             abrirEditarDiagnostico(
                                 diagnostico
@@ -524,495 +436,427 @@ fun DiagnosticoScreen(
 
     if (mostrarFormulario) {
 
-        AlertDialog(
-            onDismissRequest = {
-                mostrarFormulario =
-                    false
+        val porcentajeIngresado =
+            confianza.toFloatOrNull()
+
+        val confianzaValida =
+            porcentajeIngresado != null &&
+                    porcentajeIngresado in 0f..100f
+
+        val formularioValido =
+            parcelaSeleccionadaId != null &&
+                    resultado.isNotBlank() &&
+                    imagenRuta.isNotBlank() &&
+                    confianzaValida
+
+        AgroDialog(
+            title =
+                if (diagnosticoEditando == null) {
+                    "Nuevo diagnóstico"
+                } else {
+                    "Editar diagnóstico"
+                },
+            confirmText =
+                if (diagnosticoEditando == null) {
+                    "Guardar"
+                } else {
+                    "Actualizar"
+                },
+            confirmEnabled = formularioValido,
+            onDismiss = {
+                mostrarFormulario = false
                 limpiarFormulario()
             },
+            onConfirm = {
 
-            shape =
-                RoundedCornerShape(18.dp),
+                val parcelaId =
+                    parcelaSeleccionadaId
 
-            title = {
+                val porcentaje =
+                    confianza
+                        .toFloatOrNull()
 
-                Text(
-                    text =
-                        if (
-                            diagnosticoEditando ==
-                            null
-                        ) {
-                            "Nuevo diagnóstico"
-                        } else {
-                            "Editar diagnóstico"
-                        },
-                    fontWeight =
-                        FontWeight.Bold
-                )
-            },
-
-            text = {
-
-                LazyColumn {
-
-                    item {
-
-                        Row(
-                            modifier =
-                                Modifier.fillMaxWidth(),
-                            horizontalArrangement =
-                                Arrangement.spacedBy(
-                                    8.dp
-                                )
-                        ) {
-
-                            listOf(
-                                Modulo.CULTIVO to "Cultivo",
-                                Modulo.GANADO to "Ganado"
-                            ).forEach { (opcion, etiqueta) ->
-
-                                if (opcion == moduloActual) {
-                                    Button(
-                                        onClick = {},
-                                        modifier =
-                                            Modifier.weight(1f)
-                                    ) {
-                                        Text(etiqueta)
-                                    }
-                                } else {
-                                    OutlinedButton(
-                                        onClick = {
-                                            cambiarModulo(opcion)
-                                        },
-                                        modifier =
-                                            Modifier.weight(1f)
-                                    ) {
-                                        Text(etiqueta)
-                                    }
-                                }
-                            }
-                        }
-
-                        if (moduloActual == Modulo.GANADO) {
-
-                            Text(
-                                text =
-                                    "Toma la foto de cerca, al costado o lomo del animal. " +
-                                        "El resultado es orientativo: ante sospecha de " +
-                                        "dermatosis nodular, consulta a un veterinario.",
-                                style =
-                                    MaterialTheme
-                                        .typography
-                                        .bodySmall,
-                                color =
-                                    MaterialTheme
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                modifier =
-                                    Modifier.padding(
-                                        top = 6.dp
-                                    )
-                            )
-                        }
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
-                        )
-
-                        imagenBitmap?.let {
-
-                            Image(
-                                bitmap =
-                                    it.asImageBitmap(),
-                                contentDescription =
-                                    "Imagen del diagnóstico",
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(180.dp)
-                                        .clip(
-                                            RoundedCornerShape(
-                                                14.dp
-                                            )
-                                        ),
-                                contentScale =
-                                    ContentScale.Crop
-                            )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(
-                                        12.dp
-                                    )
-                            )
-                        }
-
-                        Row(
-                            modifier =
-                                Modifier.fillMaxWidth(),
-                            horizontalArrangement =
-                                Arrangement.spacedBy(
-                                    8.dp
-                                )
-                        ) {
-
-                            OutlinedButton(
-                                onClick = {
-                                    camaraLauncher
-                                        .launch(null)
-                                },
-                                modifier =
-                                    Modifier.weight(1f)
-                            ) {
-                                Text("Cámara")
-                            }
-
-                            OutlinedButton(
-                                onClick = {
-                                    galeriaLauncher
-                                        .launch(
-                                            "image/*"
-                                        )
-                                },
-                                modifier =
-                                    Modifier.weight(1f)
-                            ) {
-                                Text("Galería")
-                            }
-                        }
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
-                        )
-
-                        Button(
-                            onClick = {
-                                analizarConIA()
-                            },
-                            enabled =
-                                clasificador.disponible &&
-                                    imagenBitmap != null,
-                            modifier =
-                                Modifier.fillMaxWidth()
-                        ) {
-                            Text("Analizar con IA")
-                        }
-
-                        if (
-                            !clasificador.disponible
-                        ) {
-                            Text(
-                                text =
-                                    "El modelo no está " +
-                                        "instalado en assets/. " +
-                                        "Puedes llenar el " +
-                                        "diagnóstico a mano.",
-                                style =
-                                    MaterialTheme
-                                        .typography
-                                        .bodySmall
-                            )
-                        }
-
-                        mensajeAnalisis?.let { texto ->
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(8.dp)
-                            )
-
-                            Text(
-                                text = texto,
-                                style =
-                                    MaterialTheme
-                                        .typography
-                                        .bodySmall
-                            )
-
-                            Text(
-                                text =
-                                    "Sugerencia del modelo: " +
-                                        "revísala antes de guardar.",
-                                style =
-                                    MaterialTheme
-                                        .typography
-                                        .bodySmall
-                            )
-                        }
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
-                        )
-
-                        OutlinedTextField(
-                            value =
-                                resultado,
-                            onValueChange = {
-                                resultado = it
-                            },
-                            label = {
-                                Text(
-                                    "Resultado"
-                                )
-                            },
-                            placeholder = {
-                                Text(
-                                    "Ej. Mancha foliar"
-                                )
-                            },
-                            modifier =
-                                Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
-                        )
-
-                        OutlinedTextField(
-                            value =
-                                confianza,
-                            onValueChange = {
-                                confianza = it
-                            },
-                            label = {
-                                Text(
-                                    "Confianza (%)"
-                                )
-                            },
-                            placeholder = {
-                                Text("Ej. 92")
-                            },
-                            modifier =
-                                Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
-                        )
-
-                        OutlinedTextField(
-                            value =
-                                observaciones,
-                            onValueChange = {
-                                observaciones = it
-                            },
-                            label = {
-                                Text(
-                                    "Observaciones"
-                                )
-                            },
-                            minLines = 3,
-                            maxLines = 5,
-                            modifier =
-                                Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-            },
-
-            confirmButton = {
-
-                Button(
-                    onClick = {
-
-                        val parcelaId =
-                            parcelaSeleccionadaId
-
-                        val porcentaje =
-                            confianza
-                                .toFloatOrNull()
-
-                        if (
-                            parcelaId != null &&
-                            resultado.isNotBlank() &&
-                            imagenRuta.isNotBlank() &&
-                            porcentaje != null &&
-                            porcentaje in 0f..100f
-                        ) {
-
-                            val actual =
-                                diagnosticoEditando
-
-                            if (actual == null) {
-
-                                diagnosticoViewModel
-                                    .registrarDiagnostico(
-                                        Diagnostico(
-                                            parcelaId =
-                                                parcelaId,
-                                            imagenRuta =
-                                                imagenRuta,
-                                            resultado =
-                                                resultado.trim(),
-                                            confianza =
-                                                porcentaje /
-                                                        100f,
-                                            top3 =
-                                                top3Detectado,
-                                            observaciones =
-                                                observaciones
-                                                    .trim()
-                                                    .ifBlank {
-                                                        null
-                                                    },
-                                            modulo =
-                                                moduloActual
-                                        )
-                                    )
-
-                            } else {
-
-                                diagnosticoViewModel
-                                    .actualizarDiagnostico(
-                                        actual.copy(
-                                            parcelaId =
-                                                parcelaId,
-                                            imagenRuta =
-                                                imagenRuta,
-                                            resultado =
-                                                resultado.trim(),
-                                            confianza =
-                                                porcentaje /
-                                                        100f,
-                                            top3 =
-                                                top3Detectado,
-                                            observaciones =
-                                                observaciones
-                                                    .trim()
-                                                    .ifBlank {
-                                                        null
-                                                    },
-                                            modulo =
-                                                moduloActual
-                                        )
-                                    )
-                            }
-
-                            mostrarFormulario =
-                                false
-
-                            limpiarFormulario()
-                        }
-                    }
+                if (
+                    parcelaId != null &&
+                    resultado.isNotBlank() &&
+                    imagenRuta.isNotBlank() &&
+                    porcentaje != null &&
+                    porcentaje in 0f..100f
                 ) {
 
-                    Text(
-                        if (
-                            diagnosticoEditando ==
-                            null
-                        ) {
-                            "Guardar"
-                        } else {
-                            "Actualizar"
-                        }
-                    )
-                }
-            },
+                    val actual =
+                        diagnosticoEditando
 
-            dismissButton = {
+                    if (actual == null) {
 
-                TextButton(
-                    onClick = {
+                        diagnosticoViewModel
+                            .registrarDiagnostico(
+                                Diagnostico(
+                                    parcelaId = parcelaId,
+                                    imagenRuta = imagenRuta,
+                                    resultado = resultado.trim(),
+                                    confianza = porcentaje / 100f,
+                                    top3 = top3Detectado,
+                                    observaciones =
+                                        observaciones
+                                            .trim()
+                                            .ifBlank {
+                                                null
+                                            },
+                                    modulo = moduloActual
+                                )
+                            )
 
-                        mostrarFormulario =
-                            false
+                    } else {
 
-                        limpiarFormulario()
+                        diagnosticoViewModel
+                            .actualizarDiagnostico(
+                                actual.copy(
+                                    parcelaId = parcelaId,
+                                    imagenRuta = imagenRuta,
+                                    resultado = resultado.trim(),
+                                    confianza = porcentaje / 100f,
+                                    top3 = top3Detectado,
+                                    observaciones =
+                                        observaciones
+                                            .trim()
+                                            .ifBlank {
+                                                null
+                                            },
+                                    modulo = moduloActual
+                                )
+                            )
                     }
-                ) {
 
-                    Text("Cancelar")
+                    mostrarFormulario =
+                        false
+
+                    limpiarFormulario()
                 }
             }
-        )
+        ) {
+
+            // MÓDULO: Cultivo | Ganado
+            AgroSegmented(
+                options = listOf(
+                    Modulo.CULTIVO to "Cultivo",
+                    Modulo.GANADO to "Ganado"
+                ),
+                selected = moduloActual,
+                onSelect = { cambiarModulo(it) }
+            )
+
+            if (moduloActual == Modulo.GANADO) {
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                AgroBanner(
+                    text =
+                        "Toma la foto de cerca, al costado o lomo del animal. " +
+                                "El resultado es orientativo: ante sospecha de " +
+                                "dermatosis nodular, consulta a un veterinario.",
+                    tone = AgroTone.WARNING
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // FOTO
+            val foto = imagenBitmap
+
+            if (foto != null) {
+
+                Image(
+                    bitmap = foto.asImageBitmap(),
+                    contentDescription = "Imagen del diagnóstico",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(14.dp)),
+                    contentScale = ContentScale.Crop
+                )
+
+            } else {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(AgroSurfaceAlt)
+                        .border(1.dp, AgroBorder, RoundedCornerShape(14.dp)),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+
+                    AgroIconBadge(
+                        icon = R.drawable.ic_image,
+                        tone = AgroTone.ACCENT
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text =
+                            if (moduloActual == Modulo.GANADO) {
+                                "Agrega una foto del animal"
+                            } else {
+                                "Agrega una foto del cultivo"
+                            },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AgroTextSecondary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+
+                AgroSecondaryButton(
+                    text = "Cámara",
+                    icon = R.drawable.ic_camera,
+                    onClick = {
+                        camaraLauncher
+                            .launch(null)
+                    },
+                    height = 48.dp,
+                    modifier = Modifier.weight(1f)
+                )
+
+                AgroSecondaryButton(
+                    text = "Galería",
+                    icon = R.drawable.ic_image,
+                    onClick = {
+                        galeriaLauncher
+                            .launch(
+                                "image/*"
+                            )
+                    },
+                    height = 48.dp,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // ANÁLISIS CON IA
+            AgroTonalButton(
+                text = "Analizar con IA",
+                icon = R.drawable.ic_sparkle,
+                onClick = {
+                    analizarConIA()
+                },
+                enabled =
+                    clasificador.disponible &&
+                            imagenBitmap != null,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            if (
+                !clasificador.disponible
+            ) {
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                AgroBanner(
+                    text =
+                        "El modelo no está " +
+                                "instalado en assets/. " +
+                                "Puedes llenar el " +
+                                "diagnóstico a mano.",
+                    tone = AgroTone.WARNING
+                )
+            }
+
+            mensajeAnalisis?.let { texto ->
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (top3Detectado.isNotEmpty()) {
+
+                    ResultadosModelo(
+                        predicciones = top3Detectado
+                    )
+
+                } else {
+
+                    AgroBanner(
+                        text = texto,
+                        tone = AgroTone.INFO
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // DATOS DEL DIAGNÓSTICO
+            AgroTextField(
+                value = resultado,
+                onValueChange = { resultado = it },
+                label = "Resultado",
+                placeholder = "Ej. Mancha foliar",
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            FieldSpacer()
+
+            AgroTextField(
+                value = confianza,
+                onValueChange = { confianza = it },
+                label = "Confianza (%)",
+                placeholder = "Ej. 92",
+                keyboardType = KeyboardType.Number,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            FieldSpacer()
+
+            AgroTextField(
+                value = observaciones,
+                onValueChange = { observaciones = it },
+                label = "Observaciones",
+                placeholder = "Notas sobre lo que observaste",
+                singleLine = false,
+                minLines = 3,
+                maxLines = 5,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Explica por qué Guardar está deshabilitado
+            val faltante =
+                when {
+                    imagenRuta.isBlank() -> "Agrega una foto para poder guardar."
+                    resultado.isBlank() -> "Escribe el resultado del diagnóstico."
+                    !confianzaValida -> "La confianza debe ser un número entre 0 y 100."
+                    else -> null
+                }
+
+            faltante?.let {
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AgroTextTertiary
+                )
+            }
+        }
     }
 
     // ==================================================
     // DELETE
     // ==================================================
 
-    diagnosticoAEliminar?.let {
-            diagnostico ->
+    diagnosticoAEliminar?.let { diagnostico ->
 
-        AlertDialog(
-            onDismissRequest = {
+        AgroDialog(
+            title = "Eliminar diagnóstico",
+            confirmText = "Eliminar",
+            destructive = true,
+            onDismiss = {
+                diagnosticoAEliminar = null
+            },
+            onConfirm = {
+                diagnosticoViewModel
+                    .eliminarDiagnostico(
+                        diagnostico
+                    )
+
                 diagnosticoAEliminar =
                     null
-            },
+            }
+        ) {
 
-            shape =
-                RoundedCornerShape(18.dp),
+            Text(
+                text = "¿Deseas eliminar el diagnóstico \"${NombresClases.legible(diagnostico.resultado)}\"?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AgroTextPrimary
+            )
 
-            title = {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Esta acción no se puede deshacer.",
+                style = MaterialTheme.typography.bodySmall,
+                color = AgroTextSecondary
+            )
+        }
+    }
+}
+
+/** Top-3 del modelo con barra de proporción. Es una sugerencia: el usuario la revisa antes de guardar. */
+@Composable
+private fun ResultadosModelo(
+    predicciones: List<Prediccion>
+) {
+
+    AgroCard(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Icon(
+                painter = painterResource(R.drawable.ic_sparkle),
+                contentDescription = null,
+                tint = AgroGreen,
+                modifier = Modifier.size(16.dp)
+            )
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            AgroOverline(text = "Sugerencia del modelo")
+        }
+
+        predicciones.forEachIndexed { indice, prediccion ->
+
+            Spacer(modifier = Modifier.height(if (indice == 0) 12.dp else 10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
 
                 Text(
-                    text =
-                        "Eliminar diagnóstico",
-                    fontWeight =
-                        FontWeight.Bold
+                    text = NombresClases.legible(prediccion.clase),
+                    style =
+                        if (indice == 0) {
+                            MaterialTheme.typography.titleSmall
+                        } else {
+                            MaterialTheme.typography.bodyMedium
+                        },
+                    color = if (indice == 0) AgroTextPrimary else AgroTextSecondary,
+                    modifier = Modifier.weight(1f)
                 )
-            },
 
-            text = {
-
-                Column {
-
-                    Text(
-                        text =
-                            "¿Deseas eliminar el diagnóstico \"${NombresClases.legible(diagnostico.resultado)}\"?"
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(8.dp)
-                    )
-
-                    Text(
-                        text =
-                            "Esta acción no se puede deshacer.",
-                        style =
-                            MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-
-            confirmButton = {
-
-                Button(
-                    onClick = {
-
-                        diagnosticoViewModel
-                            .eliminarDiagnostico(
-                                diagnostico
-                            )
-
-                        diagnosticoAEliminar =
-                            null
-                    }
-                ) {
-
-                    Text("Eliminar")
-                }
-            },
-
-            dismissButton = {
-
-                TextButton(
-                    onClick = {
-                        diagnosticoAEliminar =
-                            null
-                    }
-                ) {
-                    Text("Cancelar")
-                }
+                Text(
+                    text = prediccion.porcentaje(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (indice == 0) AgroGreenDark else AgroTextTertiary
+                )
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            AgroProgressBar(
+                fraction = prediccion.confianza,
+                color = if (indice == 0) AgroGreen else AgroTextTertiary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Revísala antes de guardar.",
+            style = MaterialTheme.typography.bodySmall,
+            color = AgroTextTertiary
         )
     }
 }
@@ -1024,167 +868,110 @@ private fun DiagnosticoCard(
     onDeleteClick: () -> Unit
 ) {
 
-    Card(
-        modifier =
-            Modifier.fillMaxWidth(),
-        shape =
-            RoundedCornerShape(16.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    MaterialTheme.colorScheme.surface
-            )
+    val miniatura = remember(diagnostico.imagenRuta) {
+        cargarMiniatura(diagnostico.imagenRuta)
+    }
+
+    val porcentaje =
+        (diagnostico.confianza * 100)
+            .toInt()
+            .coerceIn(0, 100)
+
+    AgroCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
 
-        Column(
-            modifier =
-                Modifier.padding(18.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
 
-            Text(
-                text =
-                    when (diagnostico.modulo) {
-                        Modulo.CULTIVO -> "Cultivo"
-                        Modulo.GANADO -> "Ganado"
-                    },
-                style =
-                    MaterialTheme.typography.labelSmall,
-                color =
-                    MaterialTheme.colorScheme.primary
-            )
+            if (miniatura != null) {
 
-            Text(
-                text =
-                    NombresClases.legible(diagnostico.resultado),
-                style =
-                    MaterialTheme.typography.titleMedium,
-                fontWeight =
-                    FontWeight.Bold
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(4.dp)
-            )
-
-            Text(
-                text =
-                    "Confianza: ${
-                        (diagnostico.confianza * 100)
-                            .toInt()
-                    }%",
-                style =
-                    MaterialTheme.typography.bodyMedium,
-                color =
-                    MaterialTheme.colorScheme.primary
-            )
-
-            diagnostico.observaciones
-                ?.takeIf {
-                    it.isNotBlank()
-                }
-                ?.let {
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(10.dp)
-                    )
-
-                    Text(
-                        text = it,
-                        style =
-                            MaterialTheme.typography.bodyMedium
-                    )
-                }
-
-            Spacer(
-                modifier =
-                    Modifier.height(16.dp)
-            )
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.End
-            ) {
-
-                OutlinedButton(
-                    onClick =
-                        onEditClick
-                ) {
-
-                    Text("Editar")
-                }
-
-                Spacer(
-                    modifier =
-                        Modifier.padding(
-                            horizontal = 4.dp
-                        )
+                Image(
+                    bitmap = miniatura.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(12.dp))
                 )
 
-                TextButton(
-                    onClick =
-                        onDeleteClick
-                ) {
+            } else {
 
-                    Text(
-                        text = "Eliminar",
-                        color =
-                            MaterialTheme.colorScheme.error
-                    )
-                }
+                AgroIconBadge(
+                    icon = R.drawable.ic_leaf,
+                    size = 56.dp,
+                    iconSize = 24.dp
+                )
             }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+
+                AgroOverline(
+                    text = etiquetaModulo(diagnostico.modulo),
+                    color = AgroTextTertiary
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = NombresClases.legible(diagnostico.resultado),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = AgroTextPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            AgroStatusChip(
+                text = "$porcentaje%",
+                tone = tonoConfianza(porcentaje)
+            )
         }
+
+        diagnostico.observaciones
+            ?.takeIf {
+                it.isNotBlank()
+            }
+            ?.let {
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AgroTextSecondary
+                )
+            }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        AgroCardActions(
+            onEditClick = onEditClick,
+            onDeleteClick = onDeleteClick
+        )
     }
 }
 
-@Composable
-private fun DiagnosticoEmptyCard(
-    titulo: String,
-    descripcion: String
-) {
+/** Carga la foto reducida (1/4) para la lista, sin decodificar la imagen completa. */
+private fun cargarMiniatura(
+    ruta: String
+): Bitmap? {
 
-    Card(
-        modifier =
-            Modifier.fillMaxWidth(),
-        shape =
-            RoundedCornerShape(16.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    MaterialTheme.colorScheme.surface
-            )
-    ) {
-
-        Column(
-            modifier =
-                Modifier.padding(20.dp)
-        ) {
-
-            Text(
-                text = titulo,
-                style =
-                    MaterialTheme.typography.titleMedium,
-                fontWeight =
-                    FontWeight.Bold
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(6.dp)
-            )
-
-            Text(
-                text = descripcion,
-                style =
-                    MaterialTheme.typography.bodyMedium,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+    if (ruta.isBlank() || !File(ruta).exists()) {
+        return null
     }
+
+    val opciones = BitmapFactory.Options().apply {
+        inSampleSize = 4
+    }
+
+    return BitmapFactory.decodeFile(ruta, opciones)
 }
 
 private fun uriABitmap(
