@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.AgroSense" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.AgroSense" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Mientras la app arranca se ve el fondo papel, no un blanco -->
+        <item name="android:windowBackground">@color/agro_fondo</item>
+    </style>
 </resources>
