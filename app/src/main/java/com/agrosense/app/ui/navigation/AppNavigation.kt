@@ -103,6 +103,7 @@ fun AppNavigation() {
     LaunchedEffect(usuarioActual?.id) {
         parcelaViewModel.establecerUsuario(usuarioActual?.id)
         diagnosticoViewModel.establecerUsuario(usuarioActual?.id)
+        actividadViewModel.establecerUsuario(usuarioActual?.id)
     }
 
     // Vuelve al login y borra el historial de pantallas, para que "atrás" no regrese a la cuenta anterior
@@ -174,10 +175,15 @@ fun AppNavigation() {
                 .totalDiagnosticos
                 .collectAsState()
 
+            val totalActividades by actividadViewModel
+                .totalActividades
+                .collectAsState()
+
             HomeScreen(
                 nombreUsuario = usuarioActual?.nombre.orEmpty(),
                 totalParcelas = parcelas.size,
                 totalDiagnosticos = totalDiagnosticos,
+                totalActividades = totalActividades,
                 onCerrarSesion = cerrarSesion,
                 onParcelasClick = {
                     navController.navigate(
@@ -262,6 +268,13 @@ fun AppNavigation() {
                 parcelaViewModel = parcelaViewModel,
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onIrAParcelas = {
+                    navController.navigate(
+                        Screen.Parcelas.route
+                    ) {
+                        popUpTo(Screen.Home.route)
+                    }
                 }
             )
         }

@@ -29,6 +29,7 @@ fun HomeScreen(
     nombreUsuario: String,
     totalParcelas: Int,
     totalDiagnosticos: Int,
+    totalActividades: Int,
     onCerrarSesion: () -> Unit,
     onParcelasClick: () -> Unit,
     onDiagnosticoClick: () -> Unit,
@@ -75,14 +76,16 @@ fun HomeScreen(
         )
 
         // GUÍA PARA EMPEZAR: en las pruebas, un usuario nuevo no sabía por dónde empezar ni que el
-        // diagnóstico necesita una parcela. Se oculta cuando ya completó los dos primeros pasos.
-        if (totalParcelas == 0 || totalDiagnosticos == 0) {
+        // diagnóstico necesita una parcela. Se oculta cuando ya completó los tres primeros pasos.
+        if (totalParcelas == 0 || totalDiagnosticos == 0 || totalActividades == 0) {
 
             GuiaInicio(
                 tieneParcelas = totalParcelas > 0,
                 tieneDiagnosticos = totalDiagnosticos > 0,
+                tieneActividades = totalActividades > 0,
                 onParcelasClick = onParcelasClick,
                 onDiagnosticoClick = onDiagnosticoClick,
+                onActividadesClick = onActividadesClick,
                 onHistorialClick = onHistorialClick
             )
 
@@ -244,8 +247,10 @@ fun HomeScreen(
 private fun GuiaInicio(
     tieneParcelas: Boolean,
     tieneDiagnosticos: Boolean,
+    tieneActividades: Boolean,
     onParcelasClick: () -> Unit,
     onDiagnosticoClick: () -> Unit,
+    onActividadesClick: () -> Unit,
     onHistorialClick: () -> Unit
 ) {
 
@@ -294,6 +299,17 @@ private fun GuiaInicio(
 
             PasoGuia(
                 numero = 3,
+                titulo = "Registra riegos y tratamientos",
+                descripcion = "Anota lo que haces en cada parcela: riegos, fertilizaciones, " +
+                    "fumigaciones, vacunas del ganado o la cosecha. Así llevas el control de tus labores.",
+                hecho = tieneActividades,
+                textoBoton = "Ir a Actividades",
+                habilitado = tieneParcelas,
+                onClick = onActividadesClick
+            )
+
+            PasoGuia(
+                numero = 4,
                 titulo = "Consulta el historial",
                 descripcion = "Revisa los diagnósticos que guardaste en cada parcela.",
                 hecho = false,

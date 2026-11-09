@@ -2,6 +2,8 @@ package com.agrosense.app.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +20,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -38,11 +41,24 @@ import com.agrosense.app.data.local.entity.Actividad
 import com.agrosense.app.ui.viewmodel.ActividadViewModel
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
 
+// Labores más comunes en cultivos y ganado, para elegir con un toque en el formulario
+private val TIPOS_ACTIVIDAD = listOf(
+    "Riego",
+    "Fertilización",
+    "Fumigación",
+    "Deshierbe",
+    "Cosecha",
+    "Vacunación",
+    "Desparasitación"
+)
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ActividadScreen(
     actividadViewModel: ActividadViewModel,
     parcelaViewModel: ParcelaViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onIrAParcelas: () -> Unit = {}
 ) {
 
     val parcelas by parcelaViewModel.parcelas.collectAsState()
@@ -147,7 +163,8 @@ fun ActividadScreen(
         )
 
         Text(
-            text = "Registra y administra las actividades de tus parcelas.",
+            text = "Lleva el registro de lo que haces en cada parcela: riegos, fertilizaciones, " +
+                "fumigaciones, vacunas del ganado, cosechas…",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -242,14 +259,30 @@ fun ActividadScreen(
 
             EmptyActividadCard(
                 titulo = "Primero agrega una parcela",
-                descripcion = "Necesitas una parcela para registrar actividades."
+                descripcion = "Las actividades se anotan dentro de una parcela (tu terreno o potrero). " +
+                    "Registra una y vuelve aquí."
             )
+
+            Spacer(
+                modifier = Modifier.height(12.dp)
+            )
+
+            Button(
+                onClick = onIrAParcelas,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Ir a Mis parcelas")
+            }
 
         } else if (actividades.isEmpty()) {
 
             EmptyActividadCard(
-                titulo = "Sin actividades",
-                descripcion = "Todavía no hay actividades registradas para esta parcela."
+                titulo = "Sin actividades en esta parcela",
+                descripcion = "Toca \"+ Registrar actividad\" cada vez que riegues, fertilices, " +
+                    "fumigues o vacunes. Por ejemplo: Riego — 2 horas por goteo en la mañana."
             )
 
         } else {
@@ -331,6 +364,39 @@ fun ActividadScreen(
 
                 Column {
 
+                    Text(
+                        text = "¿Qué hiciste?",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(6.dp)
+                    )
+
+                    // Tipos comunes a un toque; si no está, se escribe abajo
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+
+                        TIPOS_ACTIVIDAD.forEach { opcion ->
+
+                            FilterChip(
+                                selected = tipo == opcion,
+                                onClick = {
+                                    tipo = opcion
+                                },
+                                label = {
+                                    Text(opcion)
+                                }
+                            )
+                        }
+                    }
+
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+
                     OutlinedTextField(
                         value = tipo,
                         onValueChange = {
@@ -343,7 +409,7 @@ fun ActividadScreen(
                         },
                         placeholder = {
                             Text(
-                                "Ej. Riego, fertilización..."
+                                "Elige uno arriba o escríbelo"
                             )
                         },
                         singleLine = true,
@@ -366,7 +432,7 @@ fun ActividadScreen(
                         },
                         placeholder = {
                             Text(
-                                "Describe la actividad realizada"
+                                "Ej. 2 horas por goteo; 1 L de fertilizante por surco"
                             )
                         },
                         minLines = 3,

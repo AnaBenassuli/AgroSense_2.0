@@ -3,6 +3,7 @@ package com.agrosense.app.data.local
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.agrosense.app.data.local.entity.Actividad
 import com.agrosense.app.data.local.entity.Diagnostico
 import com.agrosense.app.data.local.entity.Parcela
 import com.agrosense.app.data.local.entity.Usuario
@@ -66,6 +67,16 @@ class DatosPorUsuarioTest {
 
         assertTrue(db.parcelaDao().observarPorUsuario(nueva).first().isEmpty())
         assertEquals(0, db.diagnosticoDao().observarTotalPorUsuario(nueva).first())
+    }
+
+    @Test
+    fun el_total_de_actividades_es_por_usuario() = runBlocking {
+        val huerta = parcelaDe(ana, "Huerta de Ana")
+        db.actividadDao().insertar(Actividad(parcelaId = huerta, tipo = "Riego", descripcion = "2 horas"))
+        db.actividadDao().insertar(Actividad(parcelaId = huerta, tipo = "Fertilización", descripcion = "1 L"))
+
+        assertEquals(2, db.actividadDao().observarTotalPorUsuario(ana).first())
+        assertEquals(0, db.actividadDao().observarTotalPorUsuario(luis).first())
     }
 
     @Test
