@@ -2,23 +2,17 @@ package com.agrosense.app.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.agrosense.app.ui.components.AgroDialogo
-import com.agrosense.app.ui.components.Avisos
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,10 +25,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.agrosense.app.ui.components.BotonRegresar
+import com.agrosense.app.R
 import com.agrosense.app.data.local.entity.Parcela
 import com.agrosense.app.data.repository.ContenidoParcela
+import com.agrosense.app.ui.components.AgroBanner
+import com.agrosense.app.ui.components.AgroCard
+import com.agrosense.app.ui.components.AgroCardActions
+import com.agrosense.app.ui.components.AgroDataPill
+import com.agrosense.app.ui.components.AgroDialogo
+import com.agrosense.app.ui.components.AgroEmptyState
+import com.agrosense.app.ui.components.AgroEncabezado
+import com.agrosense.app.ui.components.AgroIconBadge
+import com.agrosense.app.ui.components.AgroPrimaryButton
+import com.agrosense.app.ui.components.AgroScreen
+import com.agrosense.app.ui.components.AgroSectionHeader
+import com.agrosense.app.ui.components.AgroStatusChip
+import com.agrosense.app.ui.components.AgroTextField
+import com.agrosense.app.ui.components.AgroTone
+import com.agrosense.app.ui.components.Avisos
+import com.agrosense.app.ui.components.FieldSpacer
+import com.agrosense.app.ui.theme.AgroTextPrimary
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
 
 @Composable
@@ -106,120 +118,53 @@ fun ParcelaScreen(
         mostrarFormulario = true
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 18.dp)
+    AgroScreen(
+        // CREATE: botón principal fijo abajo
+        bottomBar = {
+            AgroPrimaryButton(
+                text = "Agregar parcela",
+                icon = R.drawable.ic_add,
+                onClick = { abrirFormularioNuevo() },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     ) {
 
-        Spacer(
-            modifier = Modifier.height(34.dp)
+        AgroEncabezado(
+            titulo = "Mis parcelas",
+            descripcion = "Administra tus cultivos y consulta su información.",
+            onBack = onBackClick
         )
 
-        // HEADER
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            BotonRegresar(
-                onClick = onBackClick,
-                modifier = Modifier.padding(end = 12.dp)
-            )
-
-            Text(
-                text = "Mis parcelas",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Spacer(
-            modifier = Modifier.height(12.dp)
-        )
-
-        Text(
-            text = "Administra tus cultivos y consulta su información.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
-
-        // CREATE
-        Button(
-            onClick = {
-                abrirFormularioNuevo()
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Text(
-                text = "+ Agregar parcela",
-                style = MaterialTheme.typography.labelLarge
-            )
-        }
-
-        Spacer(
-            modifier = Modifier.height(24.dp)
-        )
+        Spacer(modifier = Modifier.height(20.dp))
 
         // READ
         if (parcelas.isEmpty()) {
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
-
-                Column(
-                    modifier = Modifier.padding(20.dp)
-                ) {
-
-                    Text(
-                        text = "Aún no tienes parcelas",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(6.dp)
-                    )
-
-                    Text(
-                        text = "Agrega tu primera parcela para comenzar a registrar diagnósticos y actividades.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            AgroEmptyState(
+                icon = R.drawable.ic_leaf,
+                title = "Aún no tienes parcelas",
+                description = "Agrega tu primera parcela para comenzar a registrar diagnósticos y actividades."
+            )
 
         } else {
 
-            Text(
-                text = if (parcelas.size == 1) {
-                    "1 parcela registrada"
-                } else {
-                    "${parcelas.size} parcelas registradas"
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            AgroSectionHeader(
+                title = "Tus parcelas",
+                trailing =
+                    if (parcelas.size == 1) {
+                        "1 registrada"
+                    } else {
+                        "${parcelas.size} registradas"
+                    }
             )
 
-            Spacer(
-                modifier = Modifier.height(12.dp)
-            )
+            Spacer(modifier = Modifier.height(12.dp))
 
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
             ) {
 
                 items(
@@ -259,7 +204,7 @@ fun ParcelaScreen(
                 limpiarFormulario()
             },
 
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(20.dp),
 
             title = {
                 Text(
@@ -276,62 +221,43 @@ fun ParcelaScreen(
 
                 Column {
 
-                    OutlinedTextField(
+                    AgroTextField(
                         value = nombre,
-                        onValueChange = {
-                            nombre = it
-                        },
-                        label = {
-                            Text("Nombre de la parcela")
-                        },
-                        singleLine = true,
+                        onValueChange = { nombre = it },
+                        label = "Nombre de la parcela",
+                        placeholder = "Ej. Lote norte",
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(
-                        modifier = Modifier.height(12.dp)
-                    )
+                    FieldSpacer()
 
-                    OutlinedTextField(
+                    AgroTextField(
                         value = cultivo,
-                        onValueChange = {
-                            cultivo = it
-                        },
-                        label = {
-                            Text("Cultivo")
-                        },
-                        placeholder = {
-                            Text("Ej. Maíz")
-                        },
-                        singleLine = true,
+                        onValueChange = { cultivo = it },
+                        label = "Cultivo",
+                        placeholder = "Ej. Maíz",
+                        leadingIcon = R.drawable.ic_leaf,
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(
-                        modifier = Modifier.height(12.dp)
-                    )
+                    FieldSpacer()
 
-                    OutlinedTextField(
+                    AgroTextField(
                         value = ubicacion,
-                        onValueChange = {
-                            ubicacion = it
-                        },
-                        label = {
-                            Text("Ubicación")
-                        },
-                        placeholder = {
-                            Text("Ej. Chihuahua")
-                        },
-                        singleLine = true,
+                        onValueChange = { ubicacion = it },
+                        label = "Ubicación",
+                        placeholder = "Ej. Chihuahua",
+                        leadingIcon = R.drawable.ic_location,
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     mensajeError?.let { error ->
-                        Text(
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        AgroBanner(
                             text = error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = 12.dp)
+                            tone = AgroTone.ERROR
                         )
                     }
                 }
@@ -340,6 +266,7 @@ fun ParcelaScreen(
             confirmButton = {
 
                 Button(
+                    shape = RoundedCornerShape(12.dp),
                     onClick = {
 
                         mensajeError = when {
@@ -418,7 +345,7 @@ fun ParcelaScreen(
                 parcelaAEliminar = null
             },
 
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(20.dp),
 
             title = {
                 Text(
@@ -434,32 +361,22 @@ fun ParcelaScreen(
                         text = "¿Estás seguro de que deseas eliminar \"${parcela.nombre}\"?"
                     )
 
-                    Spacer(
-                        modifier = Modifier.height(8.dp)
-                    )
-
                     contenidoAEliminar?.let { contenido ->
 
                         if (contenido.diagnosticos > 0 || contenido.actividades > 0) {
 
-                            Spacer(
-                                modifier = Modifier.height(8.dp)
-                            )
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                            Text(
+                            AgroBanner(
                                 text = "También se borrarán " +
-                                    "${contenido.diagnosticos} diagnóstico(s) con sus fotos y " +
-                                    "${contenido.actividades} actividad(es) de esta parcela.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.error
+                                        "${contenido.diagnosticos} diagnóstico(s) con sus fotos y " +
+                                        "${contenido.actividades} actividad(es) de esta parcela.",
+                                tone = AgroTone.ERROR
                             )
                         }
                     }
 
-                    Spacer(
-                        modifier = Modifier.height(8.dp)
-                    )
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
                         text = "Esta acción no se puede deshacer.",
@@ -472,9 +389,11 @@ fun ParcelaScreen(
             confirmButton = {
 
                 Button(
+                    shape = RoundedCornerShape(12.dp),
                     onClick = {
 
                         Avisos.mostrar("Parcela eliminada")
+
                         viewModel.eliminarParcela(parcela)
 
                         parcelaAEliminar = null
@@ -505,113 +424,70 @@ private fun ParcelaCard(
     onDeleteClick: () -> Unit
 ) {
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+    AgroCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
 
-        Column(
-            modifier = Modifier.padding(18.dp)
+        // Icono + nombre + estado
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-
-                    Text(
-                        text = parcela.nombre,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(4.dp)
-                    )
-
-                    Text(
-                        text = parcela.cultivo,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-
-                    Text(
-                        text = "Activa",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(
-                            horizontal = 12.dp,
-                            vertical = 7.dp
-                        )
-                    )
-                }
-            }
-
-            Spacer(
-                modifier = Modifier.height(18.dp)
+            AgroIconBadge(
+                icon = R.drawable.ic_leaf,
+                size = 42.dp,
+                iconSize = 20.dp
             )
+
+            Spacer(modifier = Modifier.width(12.dp))
 
             Text(
-                text = "Ubicación",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = parcela.nombre,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = AgroTextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
             )
 
-            Spacer(
-                modifier = Modifier.height(3.dp)
+            Spacer(modifier = Modifier.width(8.dp))
+
+            AgroStatusChip(
+                text = "Activa",
+                tone = AgroTone.SUCCESS,
+                showDot = true
             )
-
-            Text(
-                text = parcela.ubicacion,
-                style = MaterialTheme.typography.bodyLarge
-            )
-
-            Spacer(
-                modifier = Modifier.height(16.dp)
-            )
-
-            // UPDATE + DELETE
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
-                OutlinedButton(
-                    onClick = onEditClick
-                ) {
-                    Text("Editar")
-                }
-
-                Spacer(
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
-
-                TextButton(
-                    onClick = onDeleteClick
-                ) {
-                    Text(
-                        text = "Eliminar",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
         }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Datos en pastillas
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+
+            AgroDataPill(
+                label = "Cultivo",
+                value = parcela.cultivo,
+                modifier = Modifier.weight(1f)
+            )
+
+            AgroDataPill(
+                label = "Ubicación",
+                value = parcela.ubicacion,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // UPDATE + DELETE
+        AgroCardActions(
+            onEditClick = onEditClick,
+            onDeleteClick = onDeleteClick
+        )
     }
 }

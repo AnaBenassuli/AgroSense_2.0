@@ -24,7 +24,10 @@ val AgroSuccess = Color(0xFF0F6E56)
 val AgroSuccessSoft = Color(0xFFE1F5EE)
 
 val AgroWarning = Color(0xFFBA7517)
+val AgroWarningSoft = Color(0xFFFAF0DF)
 val AgroInfo = Color(0xFF378ADD)
+val AgroInfoSoft = Color(0xFFE8F1FB)
 
 val AgroError = Color(0xFFB3261E)
+val AgroErrorPressed = Color(0xFF8C1D18)
 val AgroErrorSoft = Color(0xFFFFEDEA)
