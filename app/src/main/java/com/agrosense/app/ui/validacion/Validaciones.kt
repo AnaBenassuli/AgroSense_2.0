@@ -28,3 +28,11 @@ fun validarDiagnostico(
     leerPorcentaje(confianza) == null -> "La confianza debe ser un número de 0 a 100."
     else -> null
 }
+
+/**
+ * Formato básico de correo: algo@dominio.ext, sin espacios. No comprueba que exista: la app no
+ * envía correos, solo evita cuentas con un correo mal escrito con el que luego no se pueda entrar.
+ */
+fun correoValido(correo: String): Boolean = FORMATO_CORREO.matches(correo.trim())
+
+private val FORMATO_CORREO = Regex("""^[^\s@]+@[^\s@]+\.[^\s@.]{2,}$""")
