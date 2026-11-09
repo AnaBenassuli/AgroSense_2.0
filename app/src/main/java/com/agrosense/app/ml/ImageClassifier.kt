@@ -50,6 +50,12 @@ class ImageClassifier(
     // Antes que las etiquetas: cargarEtiquetas lo necesita durante la inicialización
     private val archivos = ArchivosModelo.de(modulo)
     private val etiquetas: List<String> = cargarEtiquetas(context)
+    // Se clasifica en un hilo de fondo y se cierra desde el de la interfaz (al cambiar de módulo
+    // o salir de la pantalla). El candado evita cerrar el intérprete a mitad de un análisis, que
+    // en TFLite tumba la app con un error nativo.
+    private val candado = Any()
+
+    @Volatile
     private var interprete: Interpreter? = null
     private var ladoEntrada: Int = 0
     private var numClases: Int = 0
@@ -91,7 +97,11 @@ class ImageClassifier(
         }
     }
 
-    fun classify(bitmap: Bitmap): ClassificationResult {
+    /**
+     * Tarda de décimas de segundo a más de un segundo en teléfonos lentos: llamarlo fuera del hilo
+     * de la interfaz. Es seguro llamarlo desde cualquier hilo, también mientras otro llama a [close].
+     */
+    fun classify(bitmap: Bitmap): ClassificationResult = synchronized(candado) {
         val modelo = interprete ?: return ClassificationResult.NO_DISPONIBLE
 
         return try {
@@ -126,7 +136,7 @@ class ImageClassifier(
         }
     }
 
-    override fun close() {
+    override fun close() = synchronized(candado) {
         interprete?.close()
         interprete = null
     }

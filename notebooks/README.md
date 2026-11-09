@@ -4,6 +4,9 @@ Los dos modelos de `app/src/main/assets/` salen de estos notebooks. Están pensa
 Google Colab con GPU (T4) y guardan datos, checkpoints y exportaciones en Google Drive
 (`MyDrive/AgroSense/`). Se suben sin salidas; para ver resultados hay que ejecutarlos.
 
+La explicación completa (datos, entrenamiento, resultados, uso en la app y limitaciones) está en
+[`docs/pipeline-ia.md`](../docs/pipeline-ia.md).
+
 | Notebook | Genera | Dataset |
 |---|---|---|
 | `AgroSense_modelo_cultivos.ipynb` | `agrosense_crop_model.tflite` + `labels.txt` (17 clases de maíz, papa y tomate) | PlantVillage (Kaggle `abdallahalidev/plantvillage-dataset`); validación de campo con PlantDoc (Roboflow, CC BY 4.0) |

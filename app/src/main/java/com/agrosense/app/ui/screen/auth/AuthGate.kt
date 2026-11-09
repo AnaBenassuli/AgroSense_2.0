@@ -38,6 +38,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.agrosense.app.ui.components.AgroSenseLogo
@@ -48,6 +50,7 @@ import com.agrosense.app.ui.theme.AgroGreenDark
 import com.agrosense.app.ui.theme.AgroGreenPressed
 import com.agrosense.app.ui.theme.AgroSuccess
 import com.agrosense.app.ui.theme.AgroTextPrimary
+import com.agrosense.app.ui.validacion.correoValido
 import com.agrosense.app.ui.viewmodel.EstadoAcceso
 
 enum class UserType(
@@ -252,6 +255,10 @@ fun AuthGate(
                             Text("correo@ejemplo.com")
                         },
                         singleLine = true,
+                        // Teclado con @ y sin autocorrección
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(58.dp),
@@ -410,6 +417,11 @@ fun AuthGate(
                                     correo.isBlank() -> {
                                         mensajeError =
                                             "Ingresa tu correo electrónico."
+                                    }
+
+                                    !correoValido(correo) -> {
+                                        mensajeError =
+                                            "Escribe un correo válido, como nombre@ejemplo.com."
                                     }
 
                                     password.length < LONGITUD_MINIMA_CONTRASENA -> {

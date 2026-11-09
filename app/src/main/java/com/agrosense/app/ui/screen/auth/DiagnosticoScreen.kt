@@ -223,6 +223,21 @@ fun DiagnosticoScreen(
         mutableStateOf(true)
     }
 
+    // El modelo tarda en el teléfono; se analiza fuera del hilo de la interfaz. Cada análisis
+    // lleva un número y, si cambia la foto o el módulo mientras corre, su resultado se descarta
+    var analizando by remember {
+        mutableStateOf(false)
+    }
+
+    var numeroAnalisis by remember {
+        mutableStateOf(0)
+    }
+
+    fun descartarAnalisisEnCurso() {
+        numeroAnalisis++
+        analizando = false
+    }
+
     // Una foto nueva invalida el análisis anterior, que era de otra imagen
     fun usarFotoNueva(foto: Bitmap) {
         imagenBitmap = foto
@@ -231,6 +246,7 @@ fun DiagnosticoScreen(
         top3Detectado = emptyList()
         mensajeAnalisis = null
         verPasosFoto = false
+        descartarAnalisisEnCurso()
     }
 
     val camaraLauncher =
@@ -278,6 +294,7 @@ fun DiagnosticoScreen(
         top3Detectado = emptyList()
         mensajeAnalisis = null
         verPasosFoto = true
+        descartarAnalisisEnCurso()
     }
 
     /**
@@ -294,26 +311,38 @@ fun DiagnosticoScreen(
             return
         }
 
-        val analisis = clasificador.classify(foto)
-
-        if (!analisis.esValido) {
-            mensajeAnalisis = analisis.label
-            top3Detectado = emptyList()
-            return
-        }
-
-        resultado = NombresClases.legible(analisis.label)
-
-        confianza = (analisis.confidence * 100f)
-            .toInt()
-            .toString()
-
-        // LecturaIA lo explica en pantalla a partir del top-3
-        top3Detectado = analisis.top3
-
-        analisisHechos++
-
+        val modelo = clasificador
+        val numero = ++numeroAnalisis
+        analizando = true
         mensajeAnalisis = null
+
+        scope.launch {
+            val analisis = withContext(Dispatchers.Default) {
+                modelo.classify(foto)
+            }
+
+            // Mientras corría cambió la foto o el módulo: este resultado ya no aplica
+            if (numero != numeroAnalisis) return@launch
+
+            analizando = false
+
+            if (!analisis.esValido) {
+                mensajeAnalisis = analisis.label
+                top3Detectado = emptyList()
+                return@launch
+            }
+
+            resultado = NombresClases.legible(analisis.label)
+
+            confianza = (analisis.confidence * 100f)
+                .toInt()
+                .toString()
+
+            // LecturaIA lo explica en pantalla a partir del top-3
+            top3Detectado = analisis.top3
+
+            analisisHechos++
+        }
     }
 
     /**
@@ -327,6 +356,7 @@ fun DiagnosticoScreen(
         confianza = ""
         top3Detectado = emptyList()
         mensajeAnalisis = null
+        descartarAnalisisEnCurso()
     }
 
     fun abrirNuevoDiagnostico() {
@@ -636,14 +666,15 @@ fun DiagnosticoScreen(
 
                         // ANÁLISIS CON IA
                         AgroTonalButton(
-                            text = "Analizar con IA",
+                            text = if (analizando) "Analizando…" else "Analizar con IA",
                             icon = R.drawable.ic_sparkle,
                             onClick = {
                                 analizarConIA()
                             },
                             enabled =
                                 clasificador.disponible &&
-                                        imagenBitmap != null,
+                                        imagenBitmap != null &&
+                                        !analizando,
                             modifier = Modifier.fillMaxWidth()
                         )
 
