@@ -14,10 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,14 +29,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.agrosense.app.ui.components.AgroSenseLogo
+import com.agrosense.app.ui.components.OpcionTipoUsuario
 import com.agrosense.app.ui.viewmodel.EstadoAcceso
 
 enum class UserType(
-    val label: String
+    val label: String,
+    val descripcion: String
 ) {
-    PRODUCER("Productor"),
-    AGRONOMIST("Agrónomo"),
-    COOPERATIVE("Cooperativa")
+    PRODUCER(
+        "Productor",
+        "Siembras o crías animales en tu propio terreno y quieres revisar tus cultivos o tu ganado."
+    ),
+    AGRONOMIST(
+        "Agrónomo",
+        "Asesoras a productores: revisas sus parcelas y das recomendaciones de manejo."
+    ),
+    COOPERATIVE(
+        "Cooperativa",
+        "Representas a un grupo de productores y llevas el registro de las parcelas de sus socios."
+    );
+
+    companion object {
+        /** El tipo se guarda en Room por su etiqueta; lo desconocido se lee como Productor. */
+        fun desdeEtiqueta(etiqueta: String): UserType =
+            entries.firstOrNull { it.label == etiqueta } ?: PRODUCER
+    }
 }
 
 private enum class AuthMode {
@@ -81,10 +95,6 @@ fun AuthGate(
 
     var tipoUsuario by remember {
         mutableStateOf(UserType.PRODUCER)
-    }
-
-    var tipoMenuAbierto by remember {
-        mutableStateOf(false)
     }
 
     var mensajeError by remember {
@@ -282,49 +292,37 @@ fun AuthGate(
                     )
 
                     Text(
-                        text = "Tipo de usuario",
-                        style = MaterialTheme.typography.labelMedium,
+                        text = "¿Cómo vas a usar AgroSense?",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Text(
+                        text = "Todas las cuentas tienen las mismas funciones; " +
+                            "esto solo sirve para identificar tu perfil.",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     Spacer(
-                        modifier = Modifier.height(8.dp)
+                        modifier = Modifier.height(10.dp)
                     )
 
-                    OutlinedButton(
-                        onClick = {
-                            tipoMenuAbierto = true
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
+                    // Opciones a la vista en vez de un menú desplegable: así se lee la
+                    // explicación de cada una antes de elegir
+                    UserType.entries.forEach { tipo ->
 
-                        Text(
-                            text = tipoUsuario.label
+                        OpcionTipoUsuario(
+                            tipo = tipo,
+                            seleccionado = tipo == tipoUsuario,
+                            onClick = {
+                                tipoUsuario = tipo
+                            }
                         )
-                    }
 
-                    DropdownMenu(
-                        expanded = tipoMenuAbierto,
-                        onDismissRequest = {
-                            tipoMenuAbierto = false
-                        }
-                    ) {
-
-                        UserType.entries.forEach { tipo ->
-
-                            DropdownMenuItem(
-                                text = {
-                                    Text(tipo.label)
-                                },
-                                onClick = {
-                                    tipoUsuario = tipo
-                                    tipoMenuAbierto = false
-                                }
-                            )
-                        }
+                        Spacer(
+                            modifier = Modifier.height(8.dp)
+                        )
                     }
                 }
 

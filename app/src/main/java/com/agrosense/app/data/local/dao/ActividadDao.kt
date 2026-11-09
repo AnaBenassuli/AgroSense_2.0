@@ -34,6 +34,15 @@ interface ActividadDao {
 
     @Query(
         """
+        SELECT COUNT(*) FROM actividades a
+        INNER JOIN parcelas p ON p.id = a.parcelaId
+        WHERE p.usuarioId = :usuarioId
+        """
+    )
+    fun observarTotalPorUsuario(usuarioId: Long): Flow<Int>
+
+    @Query(
+        """
         SELECT * FROM actividades
         WHERE parcelaId = :parcelaId
         AND fecha BETWEEN :desde AND :hasta

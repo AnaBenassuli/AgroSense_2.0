@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +17,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -24,6 +26,11 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun HomeScreen(
+    nombreUsuario: String,
+    totalParcelas: Int,
+    totalDiagnosticos: Int,
+    totalActividades: Int,
+    onCerrarSesion: () -> Unit,
     onParcelasClick: () -> Unit,
     onDiagnosticoClick: () -> Unit,
     onHistorialClick: () -> Unit,
@@ -48,7 +55,8 @@ fun HomeScreen(
         // HEADER
 
         Text(
-            text = "Hola 👋",
+            // El nombre ayuda a confirmar con qué cuenta se entró
+            text = if (nombreUsuario.isBlank()) "Hola 👋" else "Hola, $nombreUsuario 👋",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -66,6 +74,25 @@ fun HomeScreen(
         Spacer(
             modifier = Modifier.height(24.dp)
         )
+
+        // GUÍA PARA EMPEZAR: en las pruebas, un usuario nuevo no sabía por dónde empezar ni que el
+        // diagnóstico necesita una parcela. Se oculta cuando ya completó los tres primeros pasos.
+        if (totalParcelas == 0 || totalDiagnosticos == 0 || totalActividades == 0) {
+
+            GuiaInicio(
+                tieneParcelas = totalParcelas > 0,
+                tieneDiagnosticos = totalDiagnosticos > 0,
+                tieneActividades = totalActividades > 0,
+                onParcelasClick = onParcelasClick,
+                onDiagnosticoClick = onDiagnosticoClick,
+                onActividadesClick = onActividadesClick,
+                onHistorialClick = onHistorialClick
+            )
+
+            Spacer(
+                modifier = Modifier.height(24.dp)
+            )
+        }
 
         // CTA PRINCIPAL
 
@@ -93,7 +120,7 @@ fun HomeScreen(
                 )
 
                 Text(
-                    text = "Toma una foto de tu cultivo y registra un nuevo diagnóstico.",
+                    text = "Toma una foto de una hoja o de tu ganado y la app sugiere qué enfermedad podría tener.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -143,14 +170,14 @@ fun HomeScreen(
         ) {
 
             SummaryCard(
-                title = "Parcelas",
-                value = "0",
+                title = if (totalParcelas == 1) "Parcela" else "Parcelas",
+                value = totalParcelas.toString(),
                 modifier = Modifier.weight(1f)
             )
 
             SummaryCard(
-                title = "Diagnósticos",
-                value = "0",
+                title = if (totalDiagnosticos == 1) "Diagnóstico" else "Diagnósticos",
+                value = totalDiagnosticos.toString(),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -191,14 +218,159 @@ fun HomeScreen(
 
         // NUEVA HERRAMIENTA
         ToolCard(
-            title = "Perfil y usuarios",
-            description = "Administra los usuarios registrados en AgroSense.",
+            title = "Mi perfil",
+            description = "Consulta y edita los datos de tu cuenta.",
             onClick = onPerfilClick
         )
 
         Spacer(
+            modifier = Modifier.height(12.dp)
+        )
+
+        OutlinedButton(
+            onClick = onCerrarSesion,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Text("Cerrar sesión")
+        }
+
+        Spacer(
             modifier = Modifier.height(24.dp)
         )
+    }
+}
+
+@Composable
+private fun GuiaInicio(
+    tieneParcelas: Boolean,
+    tieneDiagnosticos: Boolean,
+    tieneActividades: Boolean,
+    onParcelasClick: () -> Unit,
+    onDiagnosticoClick: () -> Unit,
+    onActividadesClick: () -> Unit,
+    onHistorialClick: () -> Unit
+) {
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+
+        Column(
+            modifier = Modifier.padding(18.dp)
+        ) {
+
+            Text(
+                text = "¿Cómo empiezo?",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+
+            Spacer(
+                modifier = Modifier.height(12.dp)
+            )
+
+            PasoGuia(
+                numero = 1,
+                titulo = "Registra una parcela",
+                descripcion = "El terreno o potrero que vas a revisar. Los diagnósticos se guardan dentro de una parcela.",
+                hecho = tieneParcelas,
+                textoBoton = "Ir a Mis parcelas",
+                habilitado = true,
+                onClick = onParcelasClick
+            )
+
+            PasoGuia(
+                numero = 2,
+                titulo = "Haz un diagnóstico",
+                descripcion = "Elige Cultivo o Ganado, toma una foto de cerca y toca \"Analizar con IA\".",
+                hecho = tieneDiagnosticos,
+                textoBoton = "Nuevo diagnóstico",
+                habilitado = tieneParcelas,
+                onClick = onDiagnosticoClick
+            )
+
+            PasoGuia(
+                numero = 3,
+                titulo = "Registra riegos y tratamientos",
+                descripcion = "Anota lo que haces en cada parcela: riegos, fertilizaciones, " +
+                    "fumigaciones, vacunas del ganado o la cosecha. Así llevas el control de tus labores.",
+                hecho = tieneActividades,
+                textoBoton = "Ir a Actividades",
+                habilitado = tieneParcelas,
+                onClick = onActividadesClick
+            )
+
+            PasoGuia(
+                numero = 4,
+                titulo = "Consulta el historial",
+                descripcion = "Revisa los diagnósticos que guardaste en cada parcela.",
+                hecho = false,
+                textoBoton = "Ver historial",
+                habilitado = tieneDiagnosticos,
+                onClick = onHistorialClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun PasoGuia(
+    numero: Int,
+    titulo: String,
+    descripcion: String,
+    hecho: Boolean,
+    textoBoton: String,
+    habilitado: Boolean,
+    onClick: () -> Unit
+) {
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 14.dp)
+    ) {
+
+        Text(
+            text = if (hecho) "✓  $titulo" else "$numero.  $titulo",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color =
+                if (hecho) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                }
+        )
+
+        Text(
+            text = descripcion,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer
+        )
+
+        if (!hecho) {
+
+            Spacer(
+                modifier = Modifier.height(6.dp)
+            )
+
+            OutlinedButton(
+                onClick = onClick,
+                enabled = habilitado,
+                modifier = Modifier.heightIn(min = 48.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(textoBoton)
+            }
+        }
     }
 }
 

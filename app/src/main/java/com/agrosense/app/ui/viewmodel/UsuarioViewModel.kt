@@ -6,10 +6,8 @@ import com.agrosense.app.data.local.entity.Usuario
 import com.agrosense.app.data.repository.ResultadoRegistro
 import com.agrosense.app.data.repository.UsuarioRepository
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 sealed interface EstadoAcceso {
@@ -22,14 +20,6 @@ sealed interface EstadoAcceso {
 class UsuarioViewModel(
     private val repository: UsuarioRepository
 ) : ViewModel() {
-
-    val usuarios: StateFlow<List<Usuario>> =
-        repository.observarUsuarios()
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
 
     private val _estadoAcceso =
         MutableStateFlow<EstadoAcceso>(EstadoAcceso.Inactivo)
@@ -89,45 +79,34 @@ class UsuarioViewModel(
         }
     }
 
+    fun cerrarSesion() {
+        _estadoAcceso.value = EstadoAcceso.Inactivo
+    }
+
     fun limpiarErrorAcceso() {
         if (_estadoAcceso.value is EstadoAcceso.Error) {
             _estadoAcceso.value = EstadoAcceso.Inactivo
         }
     }
 
-    fun registrarUsuario(
+    /**
+     * Cambia nombre y tipo de la cuenta con la sesión iniciada. El correo no se edita: es con lo
+     * que se inicia sesión. Se actualiza también la sesión, para que el saludo del inicio cambie.
+     */
+    fun actualizarPerfil(
         nombre: String,
-        correo: String,
         tipoUsuario: String
     ) {
 
-        viewModelScope.launch {
-
-            repository.registrarUsuario(
-                Usuario(
-                    nombre = nombre,
-                    correo = correo,
-                    tipoUsuario = tipoUsuario
-                )
-            )
-        }
-    }
-
-    fun actualizarUsuario(
-        usuario: Usuario
-    ) {
+        val actual = (_estadoAcceso.value as? EstadoAcceso.Autenticado)?.usuario ?: return
+        val actualizado = actual.copy(
+            nombre = nombre.trim(),
+            tipoUsuario = tipoUsuario
+        )
 
         viewModelScope.launch {
-            repository.actualizarUsuario(usuario)
-        }
-    }
-
-    fun eliminarUsuario(
-        usuario: Usuario
-    ) {
-
-        viewModelScope.launch {
-            repository.eliminarUsuario(usuario)
+            repository.actualizarUsuario(actualizado)
+            _estadoAcceso.value = EstadoAcceso.Autenticado(actualizado)
         }
     }
 }

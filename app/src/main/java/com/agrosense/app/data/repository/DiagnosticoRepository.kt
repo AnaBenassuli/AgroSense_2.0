@@ -29,6 +29,10 @@ class DiagnosticoRepository(
         parcelaId: Long
     ) = diagnosticoDao.observarPorParcela(parcelaId)
 
+    fun observarTotalPorUsuario(
+        usuarioId: Long
+    ) = diagnosticoDao.observarTotalPorUsuario(usuarioId)
+
     suspend fun obtenerUltimo(
         parcelaId: Long
     ) = diagnosticoDao.obtenerUltimo(parcelaId)

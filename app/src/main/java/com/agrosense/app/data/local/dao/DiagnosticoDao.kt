@@ -45,6 +45,15 @@ interface DiagnosticoDao {
     ): Diagnostico?
 
     @Query(
+        """
+        SELECT COUNT(*) FROM diagnosticos d
+        INNER JOIN parcelas p ON p.id = d.parcelaId
+        WHERE p.usuarioId = :usuarioId
+        """
+    )
+    fun observarTotalPorUsuario(usuarioId: Long): Flow<Int>
+
+    @Query(
         "SELECT * FROM diagnosticos WHERE id = :id LIMIT 1"
     )
     suspend fun obtenerPorId(

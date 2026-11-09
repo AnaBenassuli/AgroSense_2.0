@@ -8,11 +8,12 @@ class ParcelaRepository(
     private val parcelaDao: ParcelaDao
 ) {
 
-    fun observarParcelas(): Flow<List<Parcela>> {
-        return parcelaDao.observarTodas()
+    fun observarPorUsuario(usuarioId: Long): Flow<List<Parcela>> {
+        return parcelaDao.observarPorUsuario(usuarioId)
     }
 
     suspend fun registrarParcela(
+        usuarioId: Long,
         nombre: String,
         ubicacion: String,
         cultivo: String
@@ -21,7 +22,8 @@ class ParcelaRepository(
         val parcela = Parcela(
             nombre = nombre.trim(),
             ubicacion = ubicacion.trim(),
-            cultivo = cultivo.trim()
+            cultivo = cultivo.trim(),
+            usuarioId = usuarioId
         )
 
         return parcelaDao.insertar(parcela)

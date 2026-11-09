@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.agrosense.app.ui.components.BotonRegresar
 import com.agrosense.app.data.local.entity.Diagnostico
 import com.agrosense.app.data.local.entity.Parcela
 import com.agrosense.app.ml.NombresClases
@@ -101,11 +102,10 @@ fun HistorialScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            TextButton(
-                onClick = onBackClick
-            ) {
-                Text("←")
-            }
+            BotonRegresar(
+                onClick = onBackClick,
+                modifier = Modifier.padding(end = 12.dp)
+            )
 
             Column {
 

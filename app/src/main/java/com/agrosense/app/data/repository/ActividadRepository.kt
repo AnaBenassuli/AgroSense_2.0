@@ -29,6 +29,10 @@ class ActividadRepository(
         parcelaId: Long
     ) = actividadDao.observarPorParcela(parcelaId)
 
+    fun observarTotalPorUsuario(
+        usuarioId: Long
+    ) = actividadDao.observarTotalPorUsuario(usuarioId)
+
     suspend fun obtenerPorRango(
         parcelaId: Long,
         desde: Long,

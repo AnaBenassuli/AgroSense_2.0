@@ -30,7 +30,30 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+/**
+ * v3 -> v4: cada parcela tiene dueño (usuarioId). Antes todas las cuentas veían las parcelas,
+ * diagnósticos y actividades de todas.
+ *
+ * Las parcelas que ya existían no tienen forma de saber quién las creó. Se asignan a la primera
+ * cuenta con contraseña (la que puede iniciar sesión), o a la primera cuenta si ninguna tiene;
+ * si no hay usuarios, quedan sin dueño.
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE parcelas ADD COLUMN usuarioId INTEGER")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_parcelas_usuarioId ON parcelas (usuarioId)")
+        db.execSQL(
+            """
+            UPDATE parcelas SET usuarioId = (
+                SELECT id FROM usuarios ORDER BY (passwordHash = '') ASC, id ASC LIMIT 1
+            )
+            """
+        )
+    }
+}
+
 val TODAS_LAS_MIGRACIONES = arrayOf(
     MIGRATION_1_2,
-    MIGRATION_2_3
+    MIGRATION_2_3,
+    MIGRATION_3_4
 )

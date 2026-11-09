@@ -45,6 +45,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.agrosense.app.ui.components.BotonRegresar
 import com.agrosense.app.data.local.entity.Diagnostico
 import com.agrosense.app.data.local.entity.Modulo
 import com.agrosense.app.data.local.entity.Prediccion
@@ -66,7 +67,8 @@ fun DiagnosticoScreen(
     diagnosticoViewModel: DiagnosticoViewModel,
     parcelaViewModel: ParcelaViewModel,
     onBackClick: () -> Unit,
-    modulo: Modulo = Modulo.CULTIVO
+    modulo: Modulo = Modulo.CULTIVO,
+    onIrAParcelas: () -> Unit = {}
 ) {
 
     val context = LocalContext.current
@@ -321,11 +323,10 @@ fun DiagnosticoScreen(
                 Alignment.CenterVertically
         ) {
 
-            TextButton(
-                onClick = onBackClick
-            ) {
-                Text("←")
-            }
+            BotonRegresar(
+                onClick = onBackClick,
+                modifier = Modifier.padding(end = 12.dp)
+            )
 
             Text(
                 text = "Diagnósticos",
@@ -451,8 +452,26 @@ fun DiagnosticoScreen(
                 titulo =
                     "Primero agrega una parcela",
                 descripcion =
-                    "Necesitas una parcela para registrar diagnósticos."
+                    "Los diagnósticos se guardan dentro de una parcela (tu terreno o potrero). " +
+                        "Registra una y vuelve aquí."
             )
+
+            Spacer(
+                modifier =
+                    Modifier.height(12.dp)
+            )
+
+            Button(
+                onClick = onIrAParcelas,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape =
+                    RoundedCornerShape(14.dp)
+            ) {
+
+                Text("Ir a Mis parcelas")
+            }
 
         } else if (
             diagnosticos.isEmpty()

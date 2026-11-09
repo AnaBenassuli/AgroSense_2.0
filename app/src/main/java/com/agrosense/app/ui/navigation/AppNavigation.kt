@@ -88,6 +88,35 @@ fun AppNavigation() {
     )
 
     // =====================================================
+    // SESIÓN
+    // =====================================================
+
+    val estadoSesion by usuarioViewModel
+        .estadoAcceso
+        .collectAsState()
+
+    val usuarioActual =
+        (estadoSesion as? EstadoAcceso.Autenticado)?.usuario
+
+    // Parcelas y diagnósticos se filtran por el usuario con la sesión iniciada. Sin sesión
+    // (null) las listas quedan vacías, así una cuenta nueva no ve los datos de la anterior.
+    LaunchedEffect(usuarioActual?.id) {
+        parcelaViewModel.establecerUsuario(usuarioActual?.id)
+        diagnosticoViewModel.establecerUsuario(usuarioActual?.id)
+        actividadViewModel.establecerUsuario(usuarioActual?.id)
+    }
+
+    // Vuelve al login y borra el historial de pantallas, para que "atrás" no regrese a la cuenta anterior
+    val cerrarSesion: () -> Unit = {
+        usuarioViewModel.cerrarSesion()
+        navController.navigate(
+            Screen.Login.route
+        ) {
+            popUpTo(0)
+        }
+    }
+
+    // =====================================================
     // NAVIGATION
     // =====================================================
 
@@ -138,7 +167,24 @@ fun AppNavigation() {
         // HOME
         composable(Screen.Home.route) {
 
+            val parcelas by parcelaViewModel
+                .parcelas
+                .collectAsState()
+
+            val totalDiagnosticos by diagnosticoViewModel
+                .totalDiagnosticos
+                .collectAsState()
+
+            val totalActividades by actividadViewModel
+                .totalActividades
+                .collectAsState()
+
             HomeScreen(
+                nombreUsuario = usuarioActual?.nombre.orEmpty(),
+                totalParcelas = parcelas.size,
+                totalDiagnosticos = totalDiagnosticos,
+                totalActividades = totalActividades,
+                onCerrarSesion = cerrarSesion,
                 onParcelasClick = {
                     navController.navigate(
                         Screen.Parcelas.route
@@ -190,6 +236,14 @@ fun AppNavigation() {
                 parcelaViewModel = parcelaViewModel,
                 onBackClick = {
                     navController.popBackStack()
+                },
+                // Sustituye Diagnóstico por Parcelas, así "Inicio" desde Parcelas vuelve al inicio
+                onIrAParcelas = {
+                    navController.navigate(
+                        Screen.Parcelas.route
+                    ) {
+                        popUpTo(Screen.Home.route)
+                    }
                 }
             )
         }
@@ -214,15 +268,24 @@ fun AppNavigation() {
                 parcelaViewModel = parcelaViewModel,
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onIrAParcelas = {
+                    navController.navigate(
+                        Screen.Parcelas.route
+                    ) {
+                        popUpTo(Screen.Home.route)
+                    }
                 }
             )
         }
 
-        // PERFIL / USUARIOS
+        // MI PERFIL
         composable(Screen.Perfil.route) {
 
             PerfilScreen(
-                usuarioViewModel = usuarioViewModel,
+                usuario = usuarioActual,
+                onGuardar = usuarioViewModel::actualizarPerfil,
+                onCerrarSesion = cerrarSesion,
                 onBackClick = {
                     navController.popBackStack()
                 }
