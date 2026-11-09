@@ -138,7 +138,17 @@ fun AppNavigation() {
         // HOME
         composable(Screen.Home.route) {
 
+            val parcelas by parcelaViewModel
+                .parcelas
+                .collectAsState()
+
+            val totalDiagnosticos by diagnosticoViewModel
+                .totalDiagnosticos
+                .collectAsState()
+
             HomeScreen(
+                totalParcelas = parcelas.size,
+                totalDiagnosticos = totalDiagnosticos,
                 onParcelasClick = {
                     navController.navigate(
                         Screen.Parcelas.route
@@ -190,6 +200,14 @@ fun AppNavigation() {
                 parcelaViewModel = parcelaViewModel,
                 onBackClick = {
                     navController.popBackStack()
+                },
+                // Sustituye Diagnóstico por Parcelas, así "Inicio" desde Parcelas vuelve al inicio
+                onIrAParcelas = {
+                    navController.navigate(
+                        Screen.Parcelas.route
+                    ) {
+                        popUpTo(Screen.Home.route)
+                    }
                 }
             )
         }

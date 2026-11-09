@@ -44,6 +44,9 @@ interface DiagnosticoDao {
         parcelaId: Long
     ): Diagnostico?
 
+    @Query("SELECT COUNT(*) FROM diagnosticos")
+    fun observarTotal(): Flow<Int>
+
     @Query(
         "SELECT * FROM diagnosticos WHERE id = :id LIMIT 1"
     )

@@ -1,5 +1,6 @@
 package com.agrosense.app.ui.screen.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,11 +15,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,11 +34,21 @@ import com.agrosense.app.ui.components.AgroSenseLogo
 import com.agrosense.app.ui.viewmodel.EstadoAcceso
 
 enum class UserType(
-    val label: String
+    val label: String,
+    val descripcion: String
 ) {
-    PRODUCER("Productor"),
-    AGRONOMIST("Agrónomo"),
-    COOPERATIVE("Cooperativa")
+    PRODUCER(
+        "Productor",
+        "Siembras o crías animales en tu propio terreno y quieres revisar tus cultivos o tu ganado."
+    ),
+    AGRONOMIST(
+        "Agrónomo",
+        "Asesoras a productores: revisas sus parcelas y das recomendaciones de manejo."
+    ),
+    COOPERATIVE(
+        "Cooperativa",
+        "Representas a un grupo de productores y llevas el registro de las parcelas de sus socios."
+    )
 }
 
 private enum class AuthMode {
@@ -81,10 +90,6 @@ fun AuthGate(
 
     var tipoUsuario by remember {
         mutableStateOf(UserType.PRODUCER)
-    }
-
-    var tipoMenuAbierto by remember {
-        mutableStateOf(false)
     }
 
     var mensajeError by remember {
@@ -282,49 +287,37 @@ fun AuthGate(
                     )
 
                     Text(
-                        text = "Tipo de usuario",
-                        style = MaterialTheme.typography.labelMedium,
+                        text = "¿Cómo vas a usar AgroSense?",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Text(
+                        text = "Todas las cuentas tienen las mismas funciones; " +
+                            "esto solo sirve para identificar tu perfil.",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     Spacer(
-                        modifier = Modifier.height(8.dp)
+                        modifier = Modifier.height(10.dp)
                     )
 
-                    OutlinedButton(
-                        onClick = {
-                            tipoMenuAbierto = true
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
+                    // Opciones a la vista en vez de un menú desplegable: así se lee la
+                    // explicación de cada una antes de elegir
+                    UserType.entries.forEach { tipo ->
 
-                        Text(
-                            text = tipoUsuario.label
+                        OpcionTipoUsuario(
+                            tipo = tipo,
+                            seleccionado = tipo == tipoUsuario,
+                            onClick = {
+                                tipoUsuario = tipo
+                            }
                         )
-                    }
 
-                    DropdownMenu(
-                        expanded = tipoMenuAbierto,
-                        onDismissRequest = {
-                            tipoMenuAbierto = false
-                        }
-                    ) {
-
-                        UserType.entries.forEach { tipo ->
-
-                            DropdownMenuItem(
-                                text = {
-                                    Text(tipo.label)
-                                },
-                                onClick = {
-                                    tipoUsuario = tipo
-                                    tipoMenuAbierto = false
-                                }
-                            )
-                        }
+                        Spacer(
+                            modifier = Modifier.height(8.dp)
+                        )
                     }
                 }
 
@@ -498,5 +491,62 @@ fun AuthGate(
         Spacer(
             modifier = Modifier.height(20.dp)
         )
+    }
+}
+
+@Composable
+private fun OpcionTipoUsuario(
+    tipo: UserType,
+    seleccionado: Boolean,
+    onClick: () -> Unit
+) {
+
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor =
+                if (seleccionado) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                }
+        ),
+        border =
+            if (seleccionado) {
+                BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+            } else {
+                null
+            }
+    ) {
+
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            RadioButton(
+                selected = seleccionado,
+                onClick = onClick
+            )
+
+            Column(
+                modifier = Modifier.padding(start = 4.dp)
+            ) {
+
+                Text(
+                    text = tipo.label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = tipo.descripcion,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }

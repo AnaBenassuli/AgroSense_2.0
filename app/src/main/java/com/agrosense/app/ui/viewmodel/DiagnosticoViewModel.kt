@@ -5,11 +5,22 @@ import androidx.lifecycle.viewModelScope
 import com.agrosense.app.data.local.entity.Diagnostico
 import com.agrosense.app.data.repository.DiagnosticoRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class DiagnosticoViewModel(
     private val repository: DiagnosticoRepository
 ) : ViewModel() {
+
+    val totalDiagnosticos: StateFlow<Int> =
+        repository.observarTotal()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = 0
+            )
 
     fun observarPorParcela(
         parcelaId: Long

@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.agrosense.app.ui.components.BotonRegresar
 import com.agrosense.app.data.local.entity.Usuario
 import com.agrosense.app.ui.viewmodel.UsuarioViewModel
 
@@ -123,11 +124,10 @@ fun PerfilScreen(
                 Alignment.CenterVertically
         ) {
 
-            TextButton(
-                onClick = onBackClick
-            ) {
-                Text("←")
-            }
+            BotonRegresar(
+                onClick = onBackClick,
+                modifier = Modifier.padding(end = 12.dp)
+            )
 
             Text(
                 text = "Perfil y usuarios",

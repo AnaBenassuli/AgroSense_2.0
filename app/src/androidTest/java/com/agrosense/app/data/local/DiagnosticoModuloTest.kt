@@ -6,6 +6,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.agrosense.app.data.local.entity.Diagnostico
 import com.agrosense.app.data.local.entity.Modulo
 import com.agrosense.app.data.local.entity.Parcela
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -45,6 +46,15 @@ class DiagnosticoModuloTest {
         val id = db.diagnosticoDao().insertar(diagnostico(Modulo.GANADO))
 
         assertEquals(Modulo.GANADO, db.diagnosticoDao().obtenerPorId(id)!!.modulo)
+    }
+
+    @Test
+    fun el_total_cuenta_los_diagnosticos_de_todas_las_parcelas() = runBlocking {
+        val otra = db.parcelaDao().insertar(Parcela(nombre = "Huerta", ubicacion = "Monterrey", cultivo = "Tomate"))
+        db.diagnosticoDao().insertar(diagnostico(Modulo.GANADO))
+        db.diagnosticoDao().insertar(diagnostico().copy(parcelaId = otra))
+
+        assertEquals(2, db.diagnosticoDao().observarTotal().first())
     }
 
     @Test
