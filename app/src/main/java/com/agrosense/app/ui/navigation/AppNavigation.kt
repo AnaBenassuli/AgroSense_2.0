@@ -105,6 +105,16 @@ fun AppNavigation() {
         diagnosticoViewModel.establecerUsuario(usuarioActual?.id)
     }
 
+    // Vuelve al login y borra el historial de pantallas, para que "atrás" no regrese a la cuenta anterior
+    val cerrarSesion: () -> Unit = {
+        usuarioViewModel.cerrarSesion()
+        navController.navigate(
+            Screen.Login.route
+        ) {
+            popUpTo(0)
+        }
+    }
+
     // =====================================================
     // NAVIGATION
     // =====================================================
@@ -168,14 +178,7 @@ fun AppNavigation() {
                 nombreUsuario = usuarioActual?.nombre.orEmpty(),
                 totalParcelas = parcelas.size,
                 totalDiagnosticos = totalDiagnosticos,
-                onCerrarSesion = {
-                    usuarioViewModel.cerrarSesion()
-                    navController.navigate(
-                        Screen.Login.route
-                    ) {
-                        popUpTo(0)
-                    }
-                },
+                onCerrarSesion = cerrarSesion,
                 onParcelasClick = {
                     navController.navigate(
                         Screen.Parcelas.route
@@ -263,11 +266,13 @@ fun AppNavigation() {
             )
         }
 
-        // PERFIL / USUARIOS
+        // MI PERFIL
         composable(Screen.Perfil.route) {
 
             PerfilScreen(
-                usuarioViewModel = usuarioViewModel,
+                usuario = usuarioActual,
+                onGuardar = usuarioViewModel::actualizarPerfil,
+                onCerrarSesion = cerrarSesion,
                 onBackClick = {
                     navController.popBackStack()
                 }

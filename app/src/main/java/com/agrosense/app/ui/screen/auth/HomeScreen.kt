@@ -215,8 +215,8 @@ fun HomeScreen(
 
         // NUEVA HERRAMIENTA
         ToolCard(
-            title = "Perfil y usuarios",
-            description = "Administra los usuarios registrados en AgroSense.",
+            title = "Mi perfil",
+            description = "Consulta y edita los datos de tu cuenta.",
             onClick = onPerfilClick
         )
 

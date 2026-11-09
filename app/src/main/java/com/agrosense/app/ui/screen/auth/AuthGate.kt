@@ -1,6 +1,5 @@
 package com.agrosense.app.ui.screen.auth
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,7 +16,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.agrosense.app.ui.components.AgroSenseLogo
+import com.agrosense.app.ui.components.OpcionTipoUsuario
 import com.agrosense.app.ui.viewmodel.EstadoAcceso
 
 enum class UserType(
@@ -48,7 +47,13 @@ enum class UserType(
     COOPERATIVE(
         "Cooperativa",
         "Representas a un grupo de productores y llevas el registro de las parcelas de sus socios."
-    )
+    );
+
+    companion object {
+        /** El tipo se guarda en Room por su etiqueta; lo desconocido se lee como Productor. */
+        fun desdeEtiqueta(etiqueta: String): UserType =
+            entries.firstOrNull { it.label == etiqueta } ?: PRODUCER
+    }
 }
 
 private enum class AuthMode {
@@ -491,62 +496,5 @@ fun AuthGate(
         Spacer(
             modifier = Modifier.height(20.dp)
         )
-    }
-}
-
-@Composable
-private fun OpcionTipoUsuario(
-    tipo: UserType,
-    seleccionado: Boolean,
-    onClick: () -> Unit
-) {
-
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor =
-                if (seleccionado) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                }
-        ),
-        border =
-            if (seleccionado) {
-                BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-            } else {
-                null
-            }
-    ) {
-
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            RadioButton(
-                selected = seleccionado,
-                onClick = onClick
-            )
-
-            Column(
-                modifier = Modifier.padding(start = 4.dp)
-            ) {
-
-                Text(
-                    text = tipo.label,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = tipo.descripcion,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
     }
 }
