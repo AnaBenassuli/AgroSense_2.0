@@ -29,6 +29,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,208 +64,224 @@ fun HomeScreen(
     onPerfilClick: () -> Unit
 ) {
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(
-                horizontal = 20.dp,
-                vertical = 18.dp
+    // Animación de degradado al entrar después del login.
+    // rememberSaveable evita que se repita al regresar de otra pantalla.
+    var mostrarBienvenida by rememberSaveable {
+        mutableStateOf(true)
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    horizontal = 20.dp,
+                    vertical = 18.dp
+                )
+        ) {
+
+            Spacer(
+                modifier = Modifier.height(34.dp)
             )
-    ) {
 
-        Spacer(
-            modifier = Modifier.height(34.dp)
-        )
+            // HEADER
 
-        // HEADER
-
-        Text(
-            // El nombre ayuda a confirmar con qué cuenta se entró
-            text = if (nombreUsuario.isBlank()) "Hola 👋" else "Hola, $nombreUsuario 👋",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(
-            modifier = Modifier.height(4.dp)
-        )
-
-        Text(
-            text = "¿Qué quieres revisar hoy?",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(
-            modifier = Modifier.height(24.dp)
-        )
-
-        // GUÍA PARA EMPEZAR: en las pruebas, un usuario nuevo no sabía por dónde empezar ni que el
-        // diagnóstico necesita una parcela. Se oculta cuando ya completó los tres primeros pasos.
-        if (totalParcelas == 0 || totalDiagnosticos == 0 || totalActividades == 0) {
-
-            GuiaInicio(
-                tieneParcelas = totalParcelas > 0,
-                tieneDiagnosticos = totalDiagnosticos > 0,
-                tieneActividades = totalActividades > 0,
-                onParcelasClick = onParcelasClick,
-                onDiagnosticoClick = onDiagnosticoClick,
-                onActividadesClick = onActividadesClick,
-                onHistorialClick = onHistorialClick
+            Text(
+                // El nombre ayuda a confirmar con qué cuenta se entró
+                text = if (nombreUsuario.isBlank()) "Hola 👋" else "Hola, $nombreUsuario 👋",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
+
+            Text(
+                text = "¿Qué quieres revisar hoy?",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(
+                modifier = Modifier.height(24.dp)
+            )
+
+            // GUÍA PARA EMPEZAR: en las pruebas, un usuario nuevo no sabía por dónde empezar ni que el
+            // diagnóstico necesita una parcela. Se oculta cuando ya completó los tres primeros pasos.
+            if (totalParcelas == 0 || totalDiagnosticos == 0 || totalActividades == 0) {
+
+                GuiaInicio(
+                    tieneParcelas = totalParcelas > 0,
+                    tieneDiagnosticos = totalDiagnosticos > 0,
+                    tieneActividades = totalActividades > 0,
+                    onParcelasClick = onParcelasClick,
+                    onDiagnosticoClick = onDiagnosticoClick,
+                    onActividadesClick = onActividadesClick,
+                    onHistorialClick = onHistorialClick
+                )
+
+                Spacer(
+                    modifier = Modifier.height(24.dp)
+                )
+            }
+
+            // CTA PRINCIPAL
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+
+                    Text(
+                        text = "Diagnóstico rápido",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(6.dp)
+                    )
+
+                    Text(
+                        text = "Toma una foto de una hoja o de tu ganado y la app sugiere qué enfermedad podría tener.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(18.dp)
+                    )
+
+                    Button(
+                        onClick = onDiagnosticoClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+
+                        Text(
+                            text = "Nuevo diagnóstico",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.height(28.dp)
+            )
+
+            // RESUMEN
+
+            Text(
+                text = "Resumen",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(
+                modifier = Modifier.height(12.dp)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+
+                SummaryCard(
+                    title = if (totalParcelas == 1) "Parcela" else "Parcelas",
+                    value = totalParcelas.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+
+                SummaryCard(
+                    title = if (totalDiagnosticos == 1) "Diagnóstico" else "Diagnósticos",
+                    value = totalDiagnosticos.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(
+                modifier = Modifier.height(28.dp)
+            )
+
+            // HERRAMIENTAS
+
+            Text(
+                text = "Herramientas",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(
+                modifier = Modifier.height(12.dp)
+            )
+
+            ToolCard(
+                title = "Mis parcelas",
+                description = "Consulta y administra tus cultivos.",
+                onClick = onParcelasClick
+            )
+
+            ToolCard(
+                title = "Historial",
+                description = "Revisa diagnósticos anteriores.",
+                onClick = onHistorialClick
+            )
+
+            ToolCard(
+                title = "Actividades",
+                description = "Registra riegos, tratamientos y labores.",
+                onClick = onActividadesClick
+            )
+
+            // NUEVA HERRAMIENTA
+            ToolCard(
+                title = "Mi perfil",
+                description = "Consulta y edita los datos de tu cuenta.",
+                onClick = onPerfilClick
+            )
+
+            Spacer(
+                modifier = Modifier.height(12.dp)
+            )
+
+            OutlinedButton(
+                onClick = onCerrarSesion,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Cerrar sesión")
+            }
 
             Spacer(
                 modifier = Modifier.height(24.dp)
             )
         }
 
-        // CTA PRINCIPAL
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
-        ) {
-
-            Column(
-                modifier = Modifier.padding(20.dp)
-            ) {
-
-                Text(
-                    text = "Diagnóstico rápido",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-
-                Spacer(
-                    modifier = Modifier.height(6.dp)
-                )
-
-                Text(
-                    text = "Toma una foto de una hoja o de tu ganado y la app sugiere qué enfermedad podría tener.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-
-                Spacer(
-                    modifier = Modifier.height(18.dp)
-                )
-
-                Button(
-                    onClick = onDiagnosticoClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-
-                    Text(
-                        text = "Nuevo diagnóstico",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            }
-        }
-
-        Spacer(
-            modifier = Modifier.height(28.dp)
-        )
-
-        // RESUMEN
-
-        Text(
-            text = "Resumen",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(
-            modifier = Modifier.height(12.dp)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-
-            SummaryCard(
-                title = if (totalParcelas == 1) "Parcela" else "Parcelas",
-                value = totalParcelas.toString(),
-                modifier = Modifier.weight(1f)
-            )
-
-            SummaryCard(
-                title = if (totalDiagnosticos == 1) "Diagnóstico" else "Diagnósticos",
-                value = totalDiagnosticos.toString(),
-                modifier = Modifier.weight(1f)
+        // DEGRADADO DE BIENVENIDA (encima del Home, solo al entrar)
+        if (mostrarBienvenida) {
+            TransicionBienvenida(
+                onTerminado = { mostrarBienvenida = false }
             )
         }
-
-        Spacer(
-            modifier = Modifier.height(28.dp)
-        )
-
-        // HERRAMIENTAS
-
-        Text(
-            text = "Herramientas",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(
-            modifier = Modifier.height(12.dp)
-        )
-
-        ToolCard(
-            title = "Mis parcelas",
-            description = "Consulta y administra tus cultivos.",
-            onClick = onParcelasClick
-        )
-
-        ToolCard(
-            title = "Historial",
-            description = "Revisa diagnósticos anteriores.",
-            onClick = onHistorialClick
-        )
-
-        ToolCard(
-            title = "Actividades",
-            description = "Registra riegos, tratamientos y labores.",
-            onClick = onActividadesClick
-        )
-
-        // NUEVA HERRAMIENTA
-        ToolCard(
-            title = "Mi perfil",
-            description = "Consulta y edita los datos de tu cuenta.",
-            onClick = onPerfilClick
-        )
-
-        Spacer(
-            modifier = Modifier.height(12.dp)
-        )
-
-        OutlinedButton(
-            onClick = onCerrarSesion,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Text("Cerrar sesión")
-        }
-
-        Spacer(
-            modifier = Modifier.height(24.dp)
-        )
     }
 }
 
