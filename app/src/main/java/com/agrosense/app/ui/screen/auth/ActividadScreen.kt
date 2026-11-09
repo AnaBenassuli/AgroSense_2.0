@@ -4,27 +4,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.agrosense.app.ui.components.AgroDialogo
-import com.agrosense.app.ui.components.Avisos
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,8 +28,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.agrosense.app.ui.components.BotonRegresar
+import com.agrosense.app.R
 import com.agrosense.app.data.local.entity.Actividad
+import com.agrosense.app.ui.components.AgroBanner
+import com.agrosense.app.ui.components.AgroCard
+import com.agrosense.app.ui.components.AgroCardActions
+import com.agrosense.app.ui.components.AgroDialogo
+import com.agrosense.app.ui.components.AgroEmptyState
+import com.agrosense.app.ui.components.AgroEncabezado
+import com.agrosense.app.ui.components.AgroIconBadge
+import com.agrosense.app.ui.components.AgroPrimaryButton
+import com.agrosense.app.ui.components.AgroScreen
+import com.agrosense.app.ui.components.AgroSectionHeader
+import com.agrosense.app.ui.components.AgroSelectField
+import com.agrosense.app.ui.components.AgroTextField
+import com.agrosense.app.ui.components.AgroTonalButton
+import com.agrosense.app.ui.components.AgroTone
+import com.agrosense.app.ui.components.Avisos
+import com.agrosense.app.ui.components.FieldSpacer
+import com.agrosense.app.ui.theme.AgroTextPrimary
+import com.agrosense.app.ui.theme.AgroTextSecondary
 import com.agrosense.app.ui.viewmodel.ActividadViewModel
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
 
@@ -87,10 +96,6 @@ fun ActividadScreen(
 
     } ?: emptyList()
 
-    var mostrarMenuParcelas by remember {
-        mutableStateOf(false)
-    }
-
     var mostrarFormulario by remember {
         mutableStateOf(false)
     }
@@ -136,182 +141,93 @@ fun ActividadScreen(
         mostrarFormulario = true
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .padding(
-                horizontal = 20.dp,
-                vertical = 18.dp
+    AgroScreen(
+        // CREATE: botón principal fijo abajo
+        bottomBar = {
+            AgroPrimaryButton(
+                text = "Registrar actividad",
+                icon = R.drawable.ic_add,
+                onClick = { nuevaActividad() },
+                enabled = parcelaSeleccionadaId != null,
+                modifier = Modifier.fillMaxWidth()
             )
+        }
     ) {
 
-        // HEADER
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            BotonRegresar(
-                onClick = onBackClick,
-                modifier = Modifier.padding(end = 12.dp)
-            )
-
-            Text(
-                text = "Actividades",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Spacer(
-            modifier = Modifier.height(8.dp)
+        AgroEncabezado(
+            titulo = "Actividades",
+            descripcion = "Lleva el registro de lo que haces en cada parcela: riegos, fertilizaciones, " +
+                    "fumigaciones, vacunas del ganado, cosechas…",
+            onBack = onBackClick
         )
 
-        Text(
-            text = "Lleva el registro de lo que haces en cada parcela: riegos, fertilizaciones, " +
-                "fumigaciones, vacunas del ganado, cosechas…",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
+        Spacer(modifier = Modifier.height(20.dp))
 
         // SELECTOR DE PARCELA
-
-        Text(
-            text = "Parcela",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        AgroSelectField(
+            label = "Parcela",
+            valueText =
+                parcelas.firstOrNull {
+                    it.id == parcelaSeleccionadaId
+                }?.let {
+                    "${it.nombre} · ${it.cultivo}"
+                } ?: "Seleccionar parcela",
+            options = parcelas,
+            optionLabel = { "${it.nombre} · ${it.cultivo}" },
+            onSelect = { parcelaSeleccionadaId = it.id },
+            leadingIcon = R.drawable.ic_location,
+            enabled = parcelas.isNotEmpty(),
+            modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(
-            modifier = Modifier.height(6.dp)
-        )
-
-        Column {
-
-            OutlinedButton(
-                onClick = {
-                    mostrarMenuParcelas = true
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-
-                val nombreParcela =
-                    parcelas.firstOrNull {
-                        it.id == parcelaSeleccionadaId
-                    }?.nombre
-                        ?: "Seleccionar parcela"
-
-                Text(nombreParcela)
-            }
-
-            DropdownMenu(
-                expanded = mostrarMenuParcelas,
-                onDismissRequest = {
-                    mostrarMenuParcelas = false
-                }
-            ) {
-
-                parcelas.forEach { parcela ->
-
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "${parcela.nombre} · ${parcela.cultivo}"
-                            )
-                        },
-                        onClick = {
-                            parcelaSeleccionadaId =
-                                parcela.id
-
-                            mostrarMenuParcelas =
-                                false
-                        }
-                    )
-                }
-            }
-        }
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        // CREATE
-        Button(
-            onClick = {
-                nuevaActividad()
-            },
-            enabled =
-                parcelaSeleccionadaId != null,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-
-            Text("+ Registrar actividad")
-        }
-
-        Spacer(
-            modifier = Modifier.height(24.dp)
-        )
+        Spacer(modifier = Modifier.height(24.dp))
 
         if (parcelas.isEmpty()) {
 
-            EmptyActividadCard(
-                titulo = "Primero agrega una parcela",
-                descripcion = "Las actividades se anotan dentro de una parcela (tu terreno o potrero). " +
-                    "Registra una y vuelve aquí."
+            AgroEmptyState(
+                icon = R.drawable.ic_location,
+                title = "Primero agrega una parcela",
+                description = "Las actividades se anotan dentro de una parcela (tu terreno o potrero). " +
+                        "Registra una y vuelve aquí."
             )
 
-            Spacer(
-                modifier = Modifier.height(12.dp)
-            )
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Button(
+            AgroTonalButton(
+                text = "Ir a Mis parcelas",
+                icon = R.drawable.ic_arrow_forward,
                 onClick = onIrAParcelas,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Text("Ir a Mis parcelas")
-            }
+                modifier = Modifier.fillMaxWidth()
+            )
 
         } else if (actividades.isEmpty()) {
 
-            EmptyActividadCard(
-                titulo = "Sin actividades en esta parcela",
-                descripcion = "Toca \"+ Registrar actividad\" cada vez que riegues, fertilices, " +
-                    "fumigues o vacunes. Por ejemplo: Riego — 2 horas por goteo en la mañana."
+            AgroEmptyState(
+                icon = R.drawable.ic_event,
+                title = "Sin actividades en esta parcela",
+                description = "Toca \"Registrar actividad\" cada vez que riegues, fertilices, " +
+                        "fumigues o vacunes. Por ejemplo: Riego — 2 horas por goteo en la mañana."
             )
 
         } else {
 
-            Text(
-                text = if (actividades.size == 1) {
-                    "1 actividad registrada"
-                } else {
-                    "${actividades.size} actividades registradas"
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            AgroSectionHeader(
+                title = "Registro de actividades",
+                trailing =
+                    if (actividades.size == 1) {
+                        "1 registrada"
+                    } else {
+                        "${actividades.size} registradas"
+                    }
             )
 
-            Spacer(
-                modifier = Modifier.height(12.dp)
-            )
+            Spacer(modifier = Modifier.height(12.dp))
 
             // READ
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement =
-                    Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
             ) {
 
                 items(
@@ -350,7 +266,7 @@ fun ActividadScreen(
                 limpiarFormulario()
             },
 
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(20.dp),
 
             title = {
 
@@ -361,8 +277,7 @@ fun ActividadScreen(
                         } else {
                             "Editar actividad"
                         },
-                    fontWeight =
-                        FontWeight.Bold
+                    fontWeight = FontWeight.Bold
                 )
             },
 
@@ -376,9 +291,7 @@ fun ActividadScreen(
                         fontWeight = FontWeight.SemiBold
                     )
 
-                    Spacer(
-                        modifier = Modifier.height(6.dp)
-                    )
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     // Tipos comunes a un toque; si no está, se escribe abajo
                     FlowRow(
@@ -399,61 +312,37 @@ fun ActividadScreen(
                         }
                     }
 
-                    Spacer(
-                        modifier = Modifier.height(8.dp)
-                    )
+                    FieldSpacer()
 
-                    OutlinedTextField(
+                    AgroTextField(
                         value = tipo,
-                        onValueChange = {
-                            tipo = it
-                        },
-                        label = {
-                            Text(
-                                "Tipo de actividad"
-                            )
-                        },
-                        placeholder = {
-                            Text(
-                                "Elige uno arriba o escríbelo"
-                            )
-                        },
-                        singleLine = true,
-                        modifier =
-                            Modifier.fillMaxWidth()
+                        onValueChange = { tipo = it },
+                        label = "Tipo de actividad",
+                        placeholder = "Elige uno arriba o escríbelo",
+                        leadingIcon = R.drawable.ic_event,
+                        modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(
-                        modifier =
-                            Modifier.height(12.dp)
-                    )
+                    FieldSpacer()
 
-                    OutlinedTextField(
+                    AgroTextField(
                         value = descripcion,
-                        onValueChange = {
-                            descripcion = it
-                        },
-                        label = {
-                            Text("Descripción")
-                        },
-                        placeholder = {
-                            Text(
-                                "Ej. 2 horas por goteo; 1 L de fertilizante por surco"
-                            )
-                        },
+                        onValueChange = { descripcion = it },
+                        label = "Descripción",
+                        placeholder = "Ej. 2 horas por goteo; 1 L de fertilizante por surco",
+                        singleLine = false,
                         minLines = 3,
                         maxLines = 5,
-                        singleLine = false,
-                        modifier =
-                            Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth()
                     )
 
                     mensajeError?.let { error ->
-                        Text(
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        AgroBanner(
                             text = error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = 12.dp)
+                            tone = AgroTone.ERROR
                         )
                     }
                 }
@@ -462,6 +351,7 @@ fun ActividadScreen(
             confirmButton = {
 
                 Button(
+                    shape = RoundedCornerShape(12.dp),
                     onClick = {
 
                         val parcelaId =
@@ -487,12 +377,9 @@ fun ActividadScreen(
                                 // CREATE
                                 actividadViewModel
                                     .registrarActividad(
-                                        parcelaId =
-                                            parcelaId,
-                                        tipo =
-                                            tipo.trim(),
-                                        descripcion =
-                                            descripcion.trim()
+                                        parcelaId = parcelaId,
+                                        tipo = tipo.trim(),
+                                        descripcion = descripcion.trim()
                                     )
 
                             } else {
@@ -501,17 +388,15 @@ fun ActividadScreen(
                                 actividadViewModel
                                     .actualizarActividad(
                                         actual.copy(
-                                            tipo =
-                                                tipo.trim(),
-                                            descripcion =
-                                                descripcion.trim()
+                                            tipo = tipo.trim(),
+                                            descripcion = descripcion.trim()
                                         )
                                     )
                             }
+
                             Avisos.mostrar(if (actual == null) "Actividad guardada" else "Actividad actualizada")
 
-                            mostrarFormulario =
-                                false
+                            mostrarFormulario = false
 
                             limpiarFormulario()
                         }
@@ -519,9 +404,7 @@ fun ActividadScreen(
                 ) {
 
                     Text(
-                        if (
-                            actividadEditando == null
-                        ) {
+                        if (actividadEditando == null) {
                             "Guardar"
                         } else {
                             "Actualizar"
@@ -534,9 +417,7 @@ fun ActividadScreen(
 
                 TextButton(
                     onClick = {
-                        mostrarFormulario =
-                            false
-
+                        mostrarFormulario = false
                         limpiarFormulario()
                     }
                 ) {
@@ -557,7 +438,7 @@ fun ActividadScreen(
                 actividadAEliminar = null
             },
 
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(20.dp),
 
             title = {
 
@@ -572,22 +453,15 @@ fun ActividadScreen(
                 Column {
 
                     Text(
-                        text =
-                            "¿Deseas eliminar la actividad \"${actividad.tipo}\"?"
+                        text = "¿Deseas eliminar la actividad \"${actividad.tipo}\"?"
                     )
 
-                    Spacer(
-                        modifier =
-                            Modifier.height(8.dp)
-                    )
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text =
-                            "Esta acción no se puede deshacer.",
-                        style =
-                            MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "Esta acción no se puede deshacer.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
@@ -595,7 +469,9 @@ fun ActividadScreen(
             confirmButton = {
 
                 Button(
+                    shape = RoundedCornerShape(12.dp),
                     onClick = {
+
                         Avisos.mostrar("Actividad eliminada")
 
                         actividadViewModel
@@ -603,11 +479,9 @@ fun ActividadScreen(
                                 actividad
                             )
 
-                        actividadAEliminar =
-                            null
+                        actividadAEliminar = null
                     }
                 ) {
-
                     Text("Eliminar")
                 }
             },
@@ -616,11 +490,9 @@ fun ActividadScreen(
 
                 TextButton(
                     onClick = {
-                        actividadAEliminar =
-                            null
+                        actividadAEliminar = null
                     }
                 ) {
-
                     Text("Cancelar")
                 }
             }
@@ -635,123 +507,45 @@ private fun ActividadCard(
     onDeleteClick: () -> Unit
 ) {
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.surface
-        )
+    AgroCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
 
-        Column(
-            modifier =
-                Modifier.padding(18.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+
+            AgroIconBadge(
+                icon = R.drawable.ic_event,
+                size = 42.dp,
+                iconSize = 20.dp
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
 
             Text(
                 text = actividad.tipo,
-                style =
-                    MaterialTheme.typography.titleMedium,
-                fontWeight =
-                    FontWeight.Bold,
-                color =
-                    MaterialTheme.colorScheme.primary
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = AgroTextPrimary,
+                modifier = Modifier.weight(1f)
             )
-
-            Spacer(
-                modifier =
-                    Modifier.height(8.dp)
-            )
-
-            Text(
-                text = actividad.descripcion,
-                style =
-                    MaterialTheme.typography.bodyMedium
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(16.dp)
-            )
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.End,
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-
-                OutlinedButton(
-                    onClick = onEditClick
-                ) {
-                    Text("Editar")
-                }
-
-                Spacer(
-                    modifier =
-                        Modifier.padding(
-                            horizontal = 4.dp
-                        )
-                )
-
-                TextButton(
-                    onClick = onDeleteClick
-                ) {
-
-                    Text(
-                        text = "Eliminar",
-                        color =
-                            MaterialTheme.colorScheme.error
-                    )
-                }
-            }
         }
-    }
-}
 
-@Composable
-private fun EmptyActividadCard(
-    titulo: String,
-    descripcion: String
-) {
+        Spacer(modifier = Modifier.height(12.dp))
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.surface
+        Text(
+            text = actividad.descripcion,
+            style = MaterialTheme.typography.bodyMedium,
+            color = AgroTextSecondary
         )
-    ) {
 
-        Column(
-            modifier =
-                Modifier.padding(20.dp)
-        ) {
+        Spacer(modifier = Modifier.height(14.dp))
 
-            Text(
-                text = titulo,
-                style =
-                    MaterialTheme.typography.titleMedium,
-                fontWeight =
-                    FontWeight.Bold
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(6.dp)
-            )
-
-            Text(
-                text = descripcion,
-                style =
-                    MaterialTheme.typography.bodyMedium,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        AgroCardActions(
+            onEditClick = onEditClick,
+            onDeleteClick = onDeleteClick
+        )
     }
 }
