@@ -1,21 +1,29 @@
 package com.agrosense.app.ui.components
 
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.agrosense.app.ui.theme.AgroGreen
 
 /**
- * Botón para volver a la pantalla de inicio.
+ * Botón para volver a la pantalla de inicio: una bolita verde con una flecha blanca.
  *
- * Antes era una flecha "←" suelta: en las pruebas con usuarios nuevos era muy pequeña y no se
- * entendía que servía para regresar. Ahora tiene texto y un área táctil de al menos 48 dp, que es
- * el mínimo recomendado por Android para que se pueda tocar con el dedo sin fallar.
+ * Mide 48 dp, el mínimo recomendado por Android para tocarlo con el dedo sin fallar.
+ * [texto] ya no se ve, pero lo lee el lector de pantalla ("Volver a Inicio").
  */
 @Composable
 fun BotonRegresar(
@@ -24,16 +32,33 @@ fun BotonRegresar(
     texto: String = "Inicio"
 ) {
 
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = 48.dp),
-        shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(AgroGreen)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = "Volver a $texto" },
+        contentAlignment = Alignment.Center
     ) {
 
-        Text(
-            text = "←  $texto",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
+        // Flecha "←" dibujada con tres líneas
+        Canvas(
+            modifier = Modifier.size(20.dp)
+        ) {
+
+            val grosor = 2.4.dp.toPx()
+            val centroY = size.height / 2
+            val izquierda = size.width * 0.15f
+            val derecha = size.width * 0.85f
+            val punta = size.width * 0.32f
+
+            // Línea horizontal
+            drawLine(Color.White, Offset(derecha, centroY), Offset(izquierda, centroY), grosor, StrokeCap.Round)
+
+            // Las dos líneas de la punta
+            drawLine(Color.White, Offset(izquierda, centroY), Offset(izquierda + punta, centroY - punta), grosor, StrokeCap.Round)
+            drawLine(Color.White, Offset(izquierda, centroY), Offset(izquierda + punta, centroY + punta), grosor, StrokeCap.Round)
+        }
     }
 }
