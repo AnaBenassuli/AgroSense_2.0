@@ -21,8 +21,8 @@ interface ParcelaDao {
     @Delete
     suspend fun eliminar(parcela: Parcela)
 
-    @Query("SELECT * FROM parcelas ORDER BY nombre")
-    fun observarTodas(): Flow<List<Parcela>>
+    @Query("SELECT * FROM parcelas WHERE usuarioId = :usuarioId ORDER BY nombre")
+    fun observarPorUsuario(usuarioId: Long): Flow<List<Parcela>>
 
     @Query("SELECT * FROM parcelas WHERE id = :id LIMIT 1")
     suspend fun obtenerPorId(id: Long): Parcela?

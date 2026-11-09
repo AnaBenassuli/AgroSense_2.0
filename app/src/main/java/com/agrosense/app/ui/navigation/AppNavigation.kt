@@ -88,6 +88,24 @@ fun AppNavigation() {
     )
 
     // =====================================================
+    // SESIÓN
+    // =====================================================
+
+    val estadoSesion by usuarioViewModel
+        .estadoAcceso
+        .collectAsState()
+
+    val usuarioActual =
+        (estadoSesion as? EstadoAcceso.Autenticado)?.usuario
+
+    // Parcelas y diagnósticos se filtran por el usuario con la sesión iniciada. Sin sesión
+    // (null) las listas quedan vacías, así una cuenta nueva no ve los datos de la anterior.
+    LaunchedEffect(usuarioActual?.id) {
+        parcelaViewModel.establecerUsuario(usuarioActual?.id)
+        diagnosticoViewModel.establecerUsuario(usuarioActual?.id)
+    }
+
+    // =====================================================
     // NAVIGATION
     // =====================================================
 
@@ -147,8 +165,17 @@ fun AppNavigation() {
                 .collectAsState()
 
             HomeScreen(
+                nombreUsuario = usuarioActual?.nombre.orEmpty(),
                 totalParcelas = parcelas.size,
                 totalDiagnosticos = totalDiagnosticos,
+                onCerrarSesion = {
+                    usuarioViewModel.cerrarSesion()
+                    navController.navigate(
+                        Screen.Login.route
+                    ) {
+                        popUpTo(0)
+                    }
+                },
                 onParcelasClick = {
                     navController.navigate(
                         Screen.Parcelas.route

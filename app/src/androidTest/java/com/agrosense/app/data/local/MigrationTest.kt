@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.agrosense.app.data.local.migration.MIGRATION_1_2
 import com.agrosense.app.data.local.migration.MIGRATION_2_3
+import com.agrosense.app.data.local.migration.MIGRATION_3_4
 import com.agrosense.app.data.local.migration.TODAS_LAS_MIGRACIONES
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -80,6 +81,39 @@ class MigrationTest {
         db.query("SELECT modulo FROM diagnosticos WHERE id = 1").use { cursor ->
             assertTrue(cursor.moveToFirst())
             assertEquals("CULTIVO", cursor.getString(0))
+        }
+    }
+
+    @Test
+    fun migrar_3_a_4_asigna_las_parcelas_existentes_a_la_primera_cuenta_con_contrasena() {
+        helper.createDatabase(nombreDb, 3).apply {
+            // id 1 sin contraseña (creado antes de la v2), id 2 con contraseña
+            execSQL("INSERT INTO usuarios (id, nombre, correo, tipoUsuario, passwordHash) VALUES (1, 'Vieja', 'vieja@agrosense.mx', 'Productor', '')")
+            execSQL("INSERT INTO usuarios (id, nombre, correo, tipoUsuario, passwordHash) VALUES (2, 'Luis', 'luis@agrosense.mx', 'Productor', 'pbkdf2_sha512\$1\$a\$b')")
+            execSQL("INSERT INTO parcelas (id, nombre, ubicacion, cultivo, fechaRegistro) VALUES (1, 'Parcela norte', 'Monterrey', 'Tomate', 0)")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(nombreDb, 4, true, MIGRATION_3_4)
+
+        db.query("SELECT usuarioId FROM parcelas WHERE id = 1").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(2L, cursor.getLong(0))
+        }
+    }
+
+    @Test
+    fun migrar_3_a_4_sin_usuarios_deja_las_parcelas_sin_dueno() {
+        helper.createDatabase(nombreDb, 3).apply {
+            execSQL("INSERT INTO parcelas (id, nombre, ubicacion, cultivo, fechaRegistro) VALUES (1, 'Parcela norte', 'Monterrey', 'Tomate', 0)")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(nombreDb, 4, true, MIGRATION_3_4)
+
+        db.query("SELECT usuarioId FROM parcelas WHERE id = 1").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertTrue(cursor.isNull(0))
         }
     }
 

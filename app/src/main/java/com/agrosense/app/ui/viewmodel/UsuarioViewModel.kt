@@ -89,6 +89,10 @@ class UsuarioViewModel(
         }
     }
 
+    fun cerrarSesion() {
+        _estadoAcceso.value = EstadoAcceso.Inactivo
+    }
+
     fun limpiarErrorAcceso() {
         if (_estadoAcceso.value is EstadoAcceso.Error) {
             _estadoAcceso.value = EstadoAcceso.Inactivo

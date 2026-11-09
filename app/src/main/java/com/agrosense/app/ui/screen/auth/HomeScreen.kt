@@ -26,8 +26,10 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun HomeScreen(
+    nombreUsuario: String,
     totalParcelas: Int,
     totalDiagnosticos: Int,
+    onCerrarSesion: () -> Unit,
     onParcelasClick: () -> Unit,
     onDiagnosticoClick: () -> Unit,
     onHistorialClick: () -> Unit,
@@ -52,7 +54,8 @@ fun HomeScreen(
         // HEADER
 
         Text(
-            text = "Hola 👋",
+            // El nombre ayuda a confirmar con qué cuenta se entró
+            text = if (nombreUsuario.isBlank()) "Hola 👋" else "Hola, $nombreUsuario 👋",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -216,6 +219,20 @@ fun HomeScreen(
             description = "Administra los usuarios registrados en AgroSense.",
             onClick = onPerfilClick
         )
+
+        Spacer(
+            modifier = Modifier.height(12.dp)
+        )
+
+        OutlinedButton(
+            onClick = onCerrarSesion,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Text("Cerrar sesión")
+        }
 
         Spacer(
             modifier = Modifier.height(24.dp)
