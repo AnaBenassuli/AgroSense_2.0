@@ -110,10 +110,15 @@ fun ActividadScreen(
         mutableStateOf("")
     }
 
+    var mensajeError by remember {
+        mutableStateOf<String?>(null)
+    }
+
     fun limpiarFormulario() {
         tipo = ""
         descripcion = ""
         actividadEditando = null
+        mensajeError = null
     }
 
     fun nuevaActividad() {
@@ -441,6 +446,15 @@ fun ActividadScreen(
                         modifier =
                             Modifier.fillMaxWidth()
                     )
+
+                    mensajeError?.let { error ->
+                        Text(
+                            text = error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 12.dp)
+                        )
+                    }
                 }
             },
 
@@ -452,10 +466,16 @@ fun ActividadScreen(
                         val parcelaId =
                             parcelaSeleccionadaId
 
+                        mensajeError = when {
+                            parcelaId == null -> "Elige la parcela de la actividad."
+                            tipo.isBlank() -> "Elige qué hiciste o escríbelo."
+                            descripcion.isBlank() -> "Describe la actividad (por ejemplo, cuánto tiempo o cuánto producto)."
+                            else -> null
+                        }
+
                         if (
-                            parcelaId != null &&
-                            tipo.isNotBlank() &&
-                            descripcion.isNotBlank()
+                            mensajeError == null &&
+                            parcelaId != null
                         ) {
 
                             val actual =
