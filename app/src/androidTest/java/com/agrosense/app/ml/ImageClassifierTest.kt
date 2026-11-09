@@ -58,4 +58,25 @@ class ImageClassifierTest {
             assertEquals(Modulo.CULTIVO, clasificador.modulo)
         }
     }
+
+    @Test
+    fun cerrar_el_modelo_mientras_analiza_en_otro_hilo_no_tumba_la_app() {
+        // La pantalla analiza en segundo plano y cierra el modelo al cambiar de módulo o salir:
+        // sin el candado, close() a mitad de run() es un error nativo que cierra la app
+        val clasificador = ImageClassifier(context, Modulo.GANADO)
+        val foto = fotoDePrueba()
+        val resultados = java.util.Collections.synchronizedList(mutableListOf<ClassificationResult>())
+
+        val hilo = kotlin.concurrent.thread {
+            repeat(5) { resultados.add(clasificador.classify(foto)) }
+        }
+        Thread.sleep(30)
+        clasificador.close()
+        hilo.join()
+
+        assertTrue(!clasificador.disponible)
+        assertEquals(5, resultados.size)
+        // Cada análisis terminó bien o vio el modelo ya cerrado; ninguno falló a la mitad
+        assertTrue(resultados.all { it.esValido || it == ClassificationResult.NO_DISPONIBLE })
+    }
 }

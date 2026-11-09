@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +25,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -199,6 +201,21 @@ fun DiagnosticoScreen(
         }
     }
 
+    // El análisis corre en segundo plano. Cada uno lleva un número: si mientras tanto cambia la
+    // foto, el módulo o se cierra el formulario, el número avanza y el resultado viejo se descarta.
+    var analizando by remember {
+        mutableStateOf(false)
+    }
+
+    var numeroAnalisis by remember {
+        mutableStateOf(0)
+    }
+
+    fun descartarAnalisisEnCurso() {
+        numeroAnalisis++
+        analizando = false
+    }
+
     var verPasosFoto by remember {
         mutableStateOf(true)
     }
@@ -211,6 +228,7 @@ fun DiagnosticoScreen(
         top3Detectado = emptyList()
         mensajeAnalisis = null
         verPasosFoto = false
+        descartarAnalisisEnCurso()
     }
 
     val camaraLauncher =
@@ -258,6 +276,7 @@ fun DiagnosticoScreen(
         top3Detectado = emptyList()
         mensajeAnalisis = null
         verPasosFoto = true
+        descartarAnalisisEnCurso()
     }
 
     /**
@@ -274,26 +293,39 @@ fun DiagnosticoScreen(
             return
         }
 
-        val analisis = clasificador.classify(foto)
-
-        if (!analisis.esValido) {
-            mensajeAnalisis = analisis.label
-            top3Detectado = emptyList()
-            return
-        }
-
-        resultado = NombresClases.legible(analisis.label)
-
-        confianza = (analisis.confidence * 100f)
-            .toInt()
-            .toString()
-
-        // LecturaIA lo explica en pantalla a partir del top-3
-        top3Detectado = analisis.top3
-
-        analisisHechos++
-
+        // Antes corría en el hilo de la interfaz y la pantalla se congelaba mientras tanto
+        val modelo = clasificador
+        val numero = ++numeroAnalisis
+        analizando = true
         mensajeAnalisis = null
+
+        scope.launch {
+            val analisis = withContext(Dispatchers.Default) {
+                modelo.classify(foto)
+            }
+
+            // La foto, el módulo o el formulario cambiaron mientras se analizaba
+            if (numero != numeroAnalisis) return@launch
+
+            analizando = false
+
+            if (!analisis.esValido) {
+                mensajeAnalisis = analisis.label
+                top3Detectado = emptyList()
+                return@launch
+            }
+
+            resultado = NombresClases.legible(analisis.label)
+
+            confianza = (analisis.confidence * 100f)
+                .toInt()
+                .toString()
+
+            // LecturaIA lo explica en pantalla a partir del top-3
+            top3Detectado = analisis.top3
+
+            analisisHechos++
+        }
     }
 
     /**
@@ -307,6 +339,7 @@ fun DiagnosticoScreen(
         confianza = ""
         top3Detectado = emptyList()
         mensajeAnalisis = null
+        descartarAnalisisEnCurso()
     }
 
     fun abrirNuevoDiagnostico() {
@@ -779,11 +812,23 @@ fun DiagnosticoScreen(
                             },
                             enabled =
                                 clasificador.disponible &&
-                                    imagenBitmap != null,
+                                    imagenBitmap != null &&
+                                    !analizando,
                             modifier =
                                 Modifier.fillMaxWidth()
                         ) {
-                            Text("Analizar con IA")
+                            if (analizando) {
+                                CircularProgressIndicator(
+                                    strokeWidth = 2.dp,
+                                    modifier =
+                                        Modifier
+                                            .padding(end = 10.dp)
+                                            .size(18.dp)
+                                )
+                                Text("Analizando…")
+                            } else {
+                                Text("Analizar con IA")
+                            }
                         }
 
                         if (
