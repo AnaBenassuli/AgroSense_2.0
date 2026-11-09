@@ -3,6 +3,7 @@ package com.agrosense.app.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.agrosense.app.data.local.entity.Parcela
+import com.agrosense.app.data.repository.ContenidoParcela
 import com.agrosense.app.data.repository.ParcelaRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,6 +59,9 @@ class ParcelaViewModel(
             repository.actualizarParcela(parcela)
         }
     }
+
+    suspend fun contarContenido(parcelaId: Long): ContenidoParcela =
+        repository.contarContenido(parcelaId)
 
     fun eliminarParcela(parcela: Parcela) {
         viewModelScope.launch {

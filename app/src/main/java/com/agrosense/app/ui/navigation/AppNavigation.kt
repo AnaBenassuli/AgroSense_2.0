@@ -10,6 +10,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.agrosense.app.data.local.DatabaseProvider
+import com.agrosense.app.data.local.ImagenStorage
+import java.io.File
 import com.agrosense.app.data.repository.ActividadRepository
 import com.agrosense.app.data.repository.DiagnosticoRepository
 import com.agrosense.app.data.repository.ParcelaRepository
@@ -86,6 +88,14 @@ fun AppNavigation() {
             usuarioRepository
         )
     )
+
+    // Una vez por arranque: borra fotos que ningún diagnóstico usa (de cualquier cuenta). Las
+    // dejaban versiones anteriores, que guardaban la foto al elegirla aunque se cancelara.
+    LaunchedEffect(Unit) {
+        diagnosticoViewModel.limpiarImagenesHuerfanas(
+            File(context.filesDir, ImagenStorage.CARPETA)
+        )
+    }
 
     // =====================================================
     // SESIÓN

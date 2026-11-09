@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DiagnosticoViewModel(
@@ -52,10 +53,19 @@ class DiagnosticoViewModel(
     }
 
     fun actualizarDiagnostico(
-        diagnostico: Diagnostico
+        diagnostico: Diagnostico,
+        rutaImagenAnterior: String? = null
     ) {
         viewModelScope.launch {
-            repository.actualizarDiagnostico(diagnostico)
+            repository.actualizarDiagnostico(diagnostico, rutaImagenAnterior)
+        }
+    }
+
+    fun limpiarImagenesHuerfanas(
+        carpeta: File
+    ) {
+        viewModelScope.launch {
+            repository.limpiarImagenesHuerfanas(carpeta)
         }
     }
 

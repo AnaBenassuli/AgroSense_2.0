@@ -21,6 +21,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.agrosense.app.ui.components.BotonRegresar
 import com.agrosense.app.data.local.entity.Parcela
+import com.agrosense.app.data.repository.ContenidoParcela
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
 
 @Composable
@@ -69,11 +71,25 @@ fun ParcelaScreen(
         mutableStateOf("")
     }
 
+    var mensajeError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    // Lo que se borra junto con la parcela (Room borra en cascada), para decirlo en el aviso
+    var contenidoAEliminar by remember {
+        mutableStateOf<ContenidoParcela?>(null)
+    }
+
+    LaunchedEffect(parcelaAEliminar?.id) {
+        contenidoAEliminar = parcelaAEliminar?.let { viewModel.contarContenido(it.id) }
+    }
+
     fun limpiarFormulario() {
         nombre = ""
         ubicacion = ""
         cultivo = ""
         parcelaEditando = null
+        mensajeError = null
     }
 
     fun abrirFormularioNuevo() {
@@ -308,6 +324,15 @@ fun ParcelaScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    mensajeError?.let { error ->
+                        Text(
+                            text = error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 12.dp)
+                        )
+                    }
                 }
             },
 
@@ -316,11 +341,14 @@ fun ParcelaScreen(
                 Button(
                     onClick = {
 
-                        if (
-                            nombre.isNotBlank() &&
-                            cultivo.isNotBlank() &&
-                            ubicacion.isNotBlank()
-                        ) {
+                        mensajeError = when {
+                            nombre.isBlank() -> "Escribe el nombre de la parcela."
+                            cultivo.isBlank() -> "Escribe qué tienes en la parcela (cultivo o ganado)."
+                            ubicacion.isBlank() -> "Escribe dónde está la parcela."
+                            else -> null
+                        }
+
+                        if (mensajeError == null) {
 
                             val parcelaActual = parcelaEditando
 
@@ -402,6 +430,29 @@ fun ParcelaScreen(
                     Text(
                         text = "¿Estás seguro de que deseas eliminar \"${parcela.nombre}\"?"
                     )
+
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+
+                    contenidoAEliminar?.let { contenido ->
+
+                        if (contenido.diagnosticos > 0 || contenido.actividades > 0) {
+
+                            Spacer(
+                                modifier = Modifier.height(8.dp)
+                            )
+
+                            Text(
+                                text = "También se borrarán " +
+                                    "${contenido.diagnosticos} diagnóstico(s) con sus fotos y " +
+                                    "${contenido.actividades} actividad(es) de esta parcela.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
 
                     Spacer(
                         modifier = Modifier.height(8.dp)

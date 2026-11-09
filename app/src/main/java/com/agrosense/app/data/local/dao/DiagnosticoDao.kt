@@ -53,6 +53,10 @@ interface DiagnosticoDao {
     )
     fun observarTotalPorUsuario(usuarioId: Long): Flow<Int>
 
+    /** Fotos de todos los diagnósticos, para saber cuáles archivos de la carpeta siguen en uso. */
+    @Query("SELECT imagenRuta FROM diagnosticos")
+    suspend fun rutasImagenes(): List<String>
+
     @Query(
         "SELECT * FROM diagnosticos WHERE id = :id LIMIT 1"
     )

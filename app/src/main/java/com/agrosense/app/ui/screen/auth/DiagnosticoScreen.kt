@@ -1,9 +1,6 @@
 package com.agrosense.app.ui.screen
 
-import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -42,6 +39,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.runtime.rememberCoroutineScope
+import com.agrosense.app.data.local.ImagenStorage
+import com.agrosense.app.ui.validacion.leerPorcentaje
+import com.agrosense.app.ui.validacion.validarDiagnostico
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -54,8 +58,6 @@ import com.agrosense.app.ml.NombresClases
 import com.agrosense.app.ml.porcentaje
 import com.agrosense.app.ui.viewmodel.DiagnosticoViewModel
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
-import java.io.File
-import java.io.FileOutputStream
 
 /**
  * @param modulo módulo con el que abre el formulario. Dentro del formulario se puede cambiar con
@@ -88,11 +90,11 @@ fun DiagnosticoScreen(
     val diagnosticos =
         parcelaSeleccionadaId?.let { id ->
 
-            diagnosticoViewModel
-                .observarPorParcela(id)
-                .collectAsState(
-                    initial = emptyList()
-                ).value
+            remember(id) {
+                diagnosticoViewModel.observarPorParcela(id)
+            }.collectAsState(
+                initial = emptyList()
+            ).value
 
         } ?: emptyList()
 
@@ -132,6 +134,22 @@ fun DiagnosticoScreen(
         mutableStateOf("")
     }
 
+    // true cuando la foto en pantalla todavía no está en disco. Se guarda recién al tocar Guardar:
+    // antes se guardaba al elegirla y, si se cancelaba el formulario, quedaba huérfana.
+    var fotoNueva by remember {
+        mutableStateOf(false)
+    }
+
+    var mensajeError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var guardando by remember {
+        mutableStateOf(false)
+    }
+
+    val scope = rememberCoroutineScope()
+
     // Clasificador en el dispositivo. Si el modelo no está en assets/,
     // `disponible` queda en false y el botón de análisis se deshabilita:
     // el formulario sigue funcionando a mano.
@@ -163,14 +181,9 @@ fun DiagnosticoScreen(
         ) { bitmap ->
 
             bitmap?.let {
-
-                imagenBitmap = it
-
-                imagenRuta =
-                    guardarBitmapEnInterno(
-                        context = context,
-                        bitmap = it
-                    )
+                imagenBitmap = ImagenStorage.reducir(it)
+                fotoNueva = true
+                mensajeError = null
             }
         }
 
@@ -181,22 +194,19 @@ fun DiagnosticoScreen(
         ) { uri ->
 
             uri?.let {
+                // Decodificar una foto de 12 MP tarda; fuera del hilo de la interfaz
+                scope.launch {
+                    val foto = withContext(Dispatchers.IO) {
+                        ImagenStorage.cargarDesdeUri(context, it)
+                    }
 
-                val bitmap =
-                    uriABitmap(
-                        context = context,
-                        uri = it
-                    )
-
-                bitmap?.let { foto ->
-
-                    imagenBitmap = foto
-
-                    imagenRuta =
-                        guardarBitmapEnInterno(
-                            context = context,
-                            bitmap = foto
-                        )
+                    if (foto == null) {
+                        mensajeError = "No se pudo abrir esa foto. Prueba con otra."
+                    } else {
+                        imagenBitmap = foto
+                        fotoNueva = true
+                        mensajeError = null
+                    }
                 }
             }
         }
@@ -207,6 +217,8 @@ fun DiagnosticoScreen(
         observaciones = ""
         imagenBitmap = null
         imagenRuta = ""
+        fotoNueva = false
+        mensajeError = null
         diagnosticoEditando = null
         top3Detectado = emptyList()
         mensajeAnalisis = null
@@ -292,10 +304,15 @@ fun DiagnosticoScreen(
         imagenRuta =
             diagnostico.imagenRuta
 
-        imagenBitmap =
-            BitmapFactory.decodeFile(
-                diagnostico.imagenRuta
-            )
+        imagenBitmap = null
+        fotoNueva = false
+        mensajeError = null
+
+        scope.launch {
+            imagenBitmap = withContext(Dispatchers.IO) {
+                ImagenStorage.cargarDesdeArchivo(diagnostico.imagenRuta)
+            }
+        }
 
         // Conserva el top-3 que se guardó al crear el diagnóstico, para no
         // vaciarlo al actualizar desde el formulario.
@@ -830,6 +847,25 @@ fun DiagnosticoScreen(
                             modifier =
                                 Modifier.fillMaxWidth()
                         )
+
+                        mensajeError?.let { error ->
+
+                            Text(
+                                text = error,
+                                style =
+                                    MaterialTheme
+                                        .typography
+                                        .bodyMedium,
+                                color =
+                                    MaterialTheme
+                                        .colorScheme
+                                        .error,
+                                modifier =
+                                    Modifier.padding(
+                                        top = 12.dp
+                                    )
+                            )
+                        }
                     }
                 }
             },
@@ -837,85 +873,85 @@ fun DiagnosticoScreen(
             confirmButton = {
 
                 Button(
+                    enabled = !guardando,
                     onClick = {
 
                         val parcelaId =
                             parcelaSeleccionadaId
 
+                        val foto =
+                            imagenBitmap
+
+                        mensajeError =
+                            validarDiagnostico(
+                                hayParcela = parcelaId != null,
+                                hayFoto = foto != null || imagenRuta.isNotBlank(),
+                                resultado = resultado,
+                                confianza = confianza
+                            )
+
                         val porcentaje =
-                            confianza
-                                .toFloatOrNull()
+                            leerPorcentaje(confianza)
 
                         if (
+                            mensajeError == null &&
                             parcelaId != null &&
-                            resultado.isNotBlank() &&
-                            imagenRuta.isNotBlank() &&
-                            porcentaje != null &&
-                            porcentaje in 0f..100f
+                            porcentaje != null
                         ) {
 
-                            val actual =
-                                diagnosticoEditando
+                            guardando = true
 
-                            if (actual == null) {
+                            scope.launch {
 
-                                diagnosticoViewModel
-                                    .registrarDiagnostico(
-                                        Diagnostico(
-                                            parcelaId =
-                                                parcelaId,
-                                            imagenRuta =
-                                                imagenRuta,
-                                            resultado =
-                                                resultado.trim(),
-                                            confianza =
-                                                porcentaje /
-                                                        100f,
-                                            top3 =
-                                                top3Detectado,
-                                            observaciones =
-                                                observaciones
-                                                    .trim()
-                                                    .ifBlank {
-                                                        null
-                                                    },
-                                            modulo =
-                                                moduloActual
+                                val ruta =
+                                    if (fotoNueva && foto != null) {
+                                        withContext(Dispatchers.IO) {
+                                            ImagenStorage.guardar(context, foto)
+                                        }
+                                    } else {
+                                        imagenRuta
+                                    }
+
+                                val actual =
+                                    diagnosticoEditando
+
+                                if (actual == null) {
+
+                                    diagnosticoViewModel
+                                        .registrarDiagnostico(
+                                            Diagnostico(
+                                                parcelaId = parcelaId,
+                                                imagenRuta = ruta,
+                                                resultado = resultado.trim(),
+                                                confianza = porcentaje / 100f,
+                                                top3 = top3Detectado,
+                                                observaciones = observaciones.trim().ifBlank { null },
+                                                modulo = moduloActual
+                                            )
                                         )
-                                    )
 
-                            } else {
+                                } else {
 
-                                diagnosticoViewModel
-                                    .actualizarDiagnostico(
-                                        actual.copy(
-                                            parcelaId =
-                                                parcelaId,
-                                            imagenRuta =
-                                                imagenRuta,
-                                            resultado =
-                                                resultado.trim(),
-                                            confianza =
-                                                porcentaje /
-                                                        100f,
-                                            top3 =
-                                                top3Detectado,
-                                            observaciones =
-                                                observaciones
-                                                    .trim()
-                                                    .ifBlank {
-                                                        null
-                                                    },
-                                            modulo =
-                                                moduloActual
+                                    diagnosticoViewModel
+                                        .actualizarDiagnostico(
+                                            actual.copy(
+                                                parcelaId = parcelaId,
+                                                imagenRuta = ruta,
+                                                resultado = resultado.trim(),
+                                                confianza = porcentaje / 100f,
+                                                top3 = top3Detectado,
+                                                observaciones = observaciones.trim().ifBlank { null },
+                                                modulo = moduloActual
+                                            ),
+                                            // Si se cambió la foto, se borra la anterior del disco
+                                            rutaImagenAnterior = actual.imagenRuta
                                         )
-                                    )
+                                }
+
+                                guardando = false
+                                mostrarFormulario = false
+                                limpiarFormulario()
                             }
-
-                            mostrarFormulario =
-                                false
-
-                            limpiarFormulario()
                         }
                     }
                 ) {
@@ -1204,59 +1240,4 @@ private fun DiagnosticoEmptyCard(
             )
         }
     }
-}
-
-private fun uriABitmap(
-    context: Context,
-    uri: Uri
-): Bitmap? {
-
-    return try {
-
-        context
-            .contentResolver
-            .openInputStream(uri)
-            ?.use {
-                BitmapFactory.decodeStream(it)
-            }
-
-    } catch (
-        exception: Exception
-    ) {
-        null
-    }
-}
-
-private fun guardarBitmapEnInterno(
-    context: Context,
-    bitmap: Bitmap
-): String {
-
-    val directorio =
-        File(
-            context.filesDir,
-            "diagnosticos"
-        )
-
-    if (!directorio.exists()) {
-        directorio.mkdirs()
-    }
-
-    val archivo =
-        File(
-            directorio,
-            "diagnostico_${System.currentTimeMillis()}.jpg"
-        )
-
-    FileOutputStream(archivo)
-        .use { output ->
-
-            bitmap.compress(
-                Bitmap.CompressFormat.JPEG,
-                90,
-                output
-            )
-        }
-
-    return archivo.absolutePath
 }

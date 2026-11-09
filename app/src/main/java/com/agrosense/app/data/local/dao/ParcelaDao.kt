@@ -26,4 +26,15 @@ interface ParcelaDao {
 
     @Query("SELECT * FROM parcelas WHERE id = :id LIMIT 1")
     suspend fun obtenerPorId(id: Long): Parcela?
+
+    // Lo que se borra en cascada con la parcela, para avisarlo antes y borrar las fotos del disco
+
+    @Query("SELECT COUNT(*) FROM diagnosticos WHERE parcelaId = :parcelaId")
+    suspend fun contarDiagnosticos(parcelaId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM actividades WHERE parcelaId = :parcelaId")
+    suspend fun contarActividades(parcelaId: Long): Int
+
+    @Query("SELECT imagenRuta FROM diagnosticos WHERE parcelaId = :parcelaId")
+    suspend fun rutasImagenes(parcelaId: Long): List<String>
 }

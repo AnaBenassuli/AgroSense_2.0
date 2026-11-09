@@ -1,6 +1,6 @@
 package com.agrosense.app.ui.screen
 
-import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -26,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,11 +40,13 @@ import androidx.compose.ui.unit.dp
 import com.agrosense.app.ui.components.BotonRegresar
 import com.agrosense.app.data.local.entity.Diagnostico
 import com.agrosense.app.data.local.entity.Parcela
+import com.agrosense.app.data.local.ImagenStorage
 import com.agrosense.app.ml.NombresClases
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.agrosense.app.ui.viewmodel.DiagnosticoViewModel
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
 import kotlinx.coroutines.flow.flowOf
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -73,9 +78,16 @@ fun HistorialScreen(
     }
 
     val flujoDiagnosticos =
-        parcelaSeleccionada?.let {
-            diagnosticoViewModel.observarPorParcela(it.id)
-        } ?: flowOf(emptyList())
+        remember(parcelaSeleccionada?.id) {
+            parcelaSeleccionada?.let {
+                diagnosticoViewModel.observarPorParcela(it.id)
+            } ?: flowOf(emptyList())
+        }
+
+    // Antes un toque en "Eliminar" borraba al instante; ahora pide confirmación como en Diagnóstico
+    var diagnosticoAEliminar by remember {
+        mutableStateOf<Diagnostico?>(null)
+    }
 
     val diagnosticos by flujoDiagnosticos.collectAsState(
         initial = emptyList()
@@ -251,10 +263,8 @@ fun HistorialScreen(
                         DiagnosticoHistoryCard(
                             diagnostico = diagnostico,
                             onDeleteClick = {
-                                diagnosticoViewModel
-                                    .eliminarDiagnostico(
-                                        diagnostico
-                                    )
+                                diagnosticoAEliminar =
+                                    diagnostico
                             }
                         )
                     }
@@ -268,6 +278,55 @@ fun HistorialScreen(
             }
         }
     }
+
+    diagnosticoAEliminar?.let { diagnostico ->
+
+        ConfirmarEliminacion(
+            diagnostico = diagnostico,
+            onConfirmar = {
+                diagnosticoViewModel.eliminarDiagnostico(diagnostico)
+                diagnosticoAEliminar = null
+            },
+            onCancelar = {
+                diagnosticoAEliminar = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun ConfirmarEliminacion(
+    diagnostico: Diagnostico,
+    onConfirmar: () -> Unit,
+    onCancelar: () -> Unit
+) {
+
+    AlertDialog(
+        onDismissRequest = onCancelar,
+        shape = RoundedCornerShape(18.dp),
+        title = {
+            Text(
+                text = "Eliminar diagnóstico",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                "¿Deseas eliminar \"${NombresClases.legible(diagnostico.resultado)}\"? " +
+                    "También se borra su foto. Esta acción no se puede deshacer."
+            )
+        },
+        confirmButton = {
+            Button(onClick = onConfirmar) {
+                Text("Eliminar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancelar) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 @Composable
@@ -276,20 +335,15 @@ private fun DiagnosticoHistoryCard(
     onDeleteClick: () -> Unit
 ) {
 
-    val bitmap = remember(
+    val bitmap by produceState<Bitmap?>(
+        initialValue = null,
         diagnostico.imagenRuta
     ) {
-
-        val archivo = File(
-            diagnostico.imagenRuta
-        )
-
-        if (archivo.exists()) {
-            BitmapFactory.decodeFile(
-                archivo.absolutePath
+        value = withContext(Dispatchers.IO) {
+            ImagenStorage.cargarDesdeArchivo(
+                diagnostico.imagenRuta,
+                ImagenStorage.LADO_MINIATURA
             )
-        } else {
-            null
         }
     }
 
@@ -304,10 +358,10 @@ private fun DiagnosticoHistoryCard(
 
         Column {
 
-            bitmap?.let {
+            bitmap?.let { miniatura ->
 
                 Image(
-                    bitmap = it.asImageBitmap(),
+                    bitmap = miniatura.asImageBitmap(),
                     contentDescription =
                         "Imagen del diagnóstico",
                     contentScale =
