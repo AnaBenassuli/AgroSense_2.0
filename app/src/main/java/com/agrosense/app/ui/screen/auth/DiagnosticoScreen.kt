@@ -3,7 +3,11 @@ package com.agrosense.app.ui.screen
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,13 +53,15 @@ import kotlinx.coroutines.withContext
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.agrosense.app.ui.components.AvisoIA
 import com.agrosense.app.ui.components.BotonRegresar
+import com.agrosense.app.ui.components.GuiaFoto
+import com.agrosense.app.ui.components.LecturaIA
 import com.agrosense.app.data.local.entity.Diagnostico
 import com.agrosense.app.data.local.entity.Modulo
 import com.agrosense.app.data.local.entity.Prediccion
 import com.agrosense.app.ml.ImageClassifier
 import com.agrosense.app.ml.NombresClases
-import com.agrosense.app.ml.porcentaje
 import com.agrosense.app.ui.viewmodel.DiagnosticoViewModel
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
 
@@ -64,6 +70,7 @@ import com.agrosense.app.ui.viewmodel.ParcelaViewModel
  *   el selector Cultivo | Ganado; la pantalla de selección de módulo (tarea 31) puede pasar
  *   GANADO aquí para que abra directo en ganado.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DiagnosticoScreen(
     diagnosticoViewModel: DiagnosticoViewModel,
@@ -174,6 +181,38 @@ fun DiagnosticoScreen(
         mutableStateOf<String?>(null)
     }
 
+    // Los pasos para tomar la foto se muestran abiertos al empezar y se pliegan al tener foto,
+    // para que el formulario no se alargue de más; se pueden volver a abrir.
+    // Cada análisis sube este contador; la explicación del resultado queda debajo del botón,
+    // fuera de la pantalla, así que al cambiar se desplaza el formulario hasta ella
+    var analisisHechos by remember {
+        mutableStateOf(0)
+    }
+
+    val verLecturaIA = remember {
+        BringIntoViewRequester()
+    }
+
+    LaunchedEffect(analisisHechos) {
+        if (analisisHechos > 0) {
+            verLecturaIA.bringIntoView()
+        }
+    }
+
+    var verPasosFoto by remember {
+        mutableStateOf(true)
+    }
+
+    // Una foto nueva invalida el análisis anterior, que era de otra imagen
+    fun usarFotoNueva(foto: Bitmap) {
+        imagenBitmap = foto
+        fotoNueva = true
+        mensajeError = null
+        top3Detectado = emptyList()
+        mensajeAnalisis = null
+        verPasosFoto = false
+    }
+
     val camaraLauncher =
         rememberLauncherForActivityResult(
             contract =
@@ -181,9 +220,7 @@ fun DiagnosticoScreen(
         ) { bitmap ->
 
             bitmap?.let {
-                imagenBitmap = ImagenStorage.reducir(it)
-                fotoNueva = true
-                mensajeError = null
+                usarFotoNueva(ImagenStorage.reducir(it))
             }
         }
 
@@ -203,9 +240,7 @@ fun DiagnosticoScreen(
                     if (foto == null) {
                         mensajeError = "No se pudo abrir esa foto. Prueba con otra."
                     } else {
-                        imagenBitmap = foto
-                        fotoNueva = true
-                        mensajeError = null
+                        usarFotoNueva(foto)
                     }
                 }
             }
@@ -222,6 +257,7 @@ fun DiagnosticoScreen(
         diagnosticoEditando = null
         top3Detectado = emptyList()
         mensajeAnalisis = null
+        verPasosFoto = true
     }
 
     /**
@@ -252,12 +288,12 @@ fun DiagnosticoScreen(
             .toInt()
             .toString()
 
+        // LecturaIA lo explica en pantalla a partir del top-3
         top3Detectado = analisis.top3
 
-        mensajeAnalisis = analisis.top3
-            .joinToString(" · ") { p ->
-                "${NombresClases.legible(p.clase)} ${p.porcentaje()}"
-            }
+        analisisHechos++
+
+        mensajeAnalisis = null
     }
 
     /**
@@ -653,27 +689,17 @@ fun DiagnosticoScreen(
                             }
                         }
 
-                        if (moduloActual == Modulo.GANADO) {
-
-                            Text(
-                                text =
-                                    "Toma la foto de cerca, al costado o lomo del animal. " +
-                                        "El resultado es orientativo: ante sospecha de " +
-                                        "dermatosis nodular, consulta a un veterinario.",
-                                style =
-                                    MaterialTheme
-                                        .typography
-                                        .bodySmall,
-                                color =
-                                    MaterialTheme
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                modifier =
-                                    Modifier.padding(
-                                        top = 6.dp
-                                    )
-                            )
-                        }
+                        GuiaFoto(
+                            modulo = moduloActual,
+                            expandida = verPasosFoto,
+                            onAlternar = {
+                                verPasosFoto = !verPasosFoto
+                            },
+                            modifier =
+                                Modifier.padding(
+                                    top = 10.dp
+                                )
+                        )
 
                         Spacer(
                             modifier =
@@ -776,29 +802,43 @@ fun DiagnosticoScreen(
                             )
                         }
 
-                        mensajeAnalisis?.let { texto ->
+                        AvisoIA(
+                            modulo = moduloActual
+                        )
 
-                            Spacer(
-                                modifier =
-                                    Modifier.height(8.dp)
-                            )
+                        // Errores del análisis (sin foto, sin resultado, modelo con fallas)
+                        mensajeAnalisis?.let { texto ->
 
                             Text(
                                 text = texto,
                                 style =
                                     MaterialTheme
                                         .typography
-                                        .bodySmall
-                            )
-
-                            Text(
-                                text =
-                                    "Sugerencia del modelo: " +
-                                        "revísala antes de guardar.",
-                                style =
+                                        .bodySmall,
+                                color =
                                     MaterialTheme
-                                        .typography
-                                        .bodySmall
+                                        .colorScheme
+                                        .error,
+                                modifier =
+                                    Modifier.padding(
+                                        top = 8.dp
+                                    )
+                            )
+                        }
+
+                        if (top3Detectado.isNotEmpty()) {
+
+                            LecturaIA(
+                                modulo = moduloActual,
+                                top3 = top3Detectado,
+                                modifier =
+                                    Modifier
+                                        .padding(
+                                            top = 10.dp
+                                        )
+                                        .bringIntoViewRequester(
+                                            verLecturaIA
+                                        )
                             )
                         }
 
