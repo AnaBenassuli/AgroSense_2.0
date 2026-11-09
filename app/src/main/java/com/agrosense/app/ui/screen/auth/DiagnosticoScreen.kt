@@ -572,19 +572,43 @@ fun DiagnosticoScreen(
 
             title = {
 
-                Text(
-                    text =
-                        if (
-                            diagnosticoEditando ==
-                            null
-                        ) {
-                            "Nuevo diagnóstico"
-                        } else {
-                            "Editar diagnóstico"
-                        },
-                    fontWeight =
-                        FontWeight.Bold
-                )
+                Column {
+
+                    Text(
+                        text =
+                            if (
+                                diagnosticoEditando ==
+                                null
+                            ) {
+                                "Nuevo diagnóstico"
+                            } else {
+                                "Editar diagnóstico"
+                            },
+                        fontWeight =
+                            FontWeight.Bold
+                    )
+
+                    // Junto al título y no al final del formulario: con foto, el formulario es más
+                    // largo que la pantalla y un mensaje abajo quedaría fuera de la vista
+                    mensajeError?.let { error ->
+
+                        Text(
+                            text = error,
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodyMedium,
+                            color =
+                                MaterialTheme
+                                    .colorScheme
+                                    .error,
+                            modifier =
+                                Modifier.padding(
+                                    top = 8.dp
+                                )
+                        )
+                    }
+                }
             },
 
             text = {
@@ -848,24 +872,6 @@ fun DiagnosticoScreen(
                                 Modifier.fillMaxWidth()
                         )
 
-                        mensajeError?.let { error ->
-
-                            Text(
-                                text = error,
-                                style =
-                                    MaterialTheme
-                                        .typography
-                                        .bodyMedium,
-                                color =
-                                    MaterialTheme
-                                        .colorScheme
-                                        .error,
-                                modifier =
-                                    Modifier.padding(
-                                        top = 12.dp
-                                    )
-                            )
-                        }
                     }
                 }
             },
