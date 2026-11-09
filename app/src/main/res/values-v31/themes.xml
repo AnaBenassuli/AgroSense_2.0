@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+        Android 12 o más nuevo: el sistema siempre muestra su propia pantalla de inicio.
+        La dejamos solo con el fondo papel y sin ícono, para que nuestra animación
+        del logo sea la única bienvenida.
+    -->
+    <style name="Theme.AgroSense" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/agro_fondo</item>
+        <item name="android:windowSplashScreenBackground">@color/agro_fondo</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_vacio</item>
+        <item name="android:windowSplashScreenAnimationDuration">0</item>
+    </style>
+</resources>
