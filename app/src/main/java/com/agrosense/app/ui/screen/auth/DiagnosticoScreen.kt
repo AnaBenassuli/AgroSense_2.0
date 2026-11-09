@@ -5,67 +5,89 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.runtime.rememberCoroutineScope
-import com.agrosense.app.data.local.ImagenStorage
-import com.agrosense.app.ui.validacion.leerPorcentaje
-import com.agrosense.app.ui.validacion.validarDiagnostico
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.agrosense.app.ui.components.AvisoIA
-import com.agrosense.app.ui.components.BotonRegresar
-import com.agrosense.app.ui.components.GuiaFoto
-import com.agrosense.app.ui.components.LecturaIA
+import com.agrosense.app.R
+import com.agrosense.app.data.local.ImagenStorage
 import com.agrosense.app.data.local.entity.Diagnostico
 import com.agrosense.app.data.local.entity.Modulo
 import com.agrosense.app.data.local.entity.Prediccion
 import com.agrosense.app.ml.ImageClassifier
 import com.agrosense.app.ml.NombresClases
+import com.agrosense.app.ui.components.AgroBanner
+import com.agrosense.app.ui.components.AgroCard
+import com.agrosense.app.ui.components.AgroCardActions
+import com.agrosense.app.ui.components.AgroDialogo
+import com.agrosense.app.ui.components.AgroEmptyState
+import com.agrosense.app.ui.components.AgroEncabezado
+import com.agrosense.app.ui.components.AgroIconBadge
+import com.agrosense.app.ui.components.AgroOverline
+import com.agrosense.app.ui.components.AgroPrimaryButton
+import com.agrosense.app.ui.components.AgroScreen
+import com.agrosense.app.ui.components.AgroSecondaryButton
+import com.agrosense.app.ui.components.AgroSectionHeader
+import com.agrosense.app.ui.components.AgroSegmented
+import com.agrosense.app.ui.components.AgroSelectField
+import com.agrosense.app.ui.components.AgroStatusChip
+import com.agrosense.app.ui.components.AgroTextField
+import com.agrosense.app.ui.components.AgroTonalButton
+import com.agrosense.app.ui.components.AgroTone
+import com.agrosense.app.ui.components.AvisoIA
+import com.agrosense.app.ui.components.Avisos
+import com.agrosense.app.ui.components.FieldSpacer
+import com.agrosense.app.ui.components.GuiaFoto
+import com.agrosense.app.ui.components.LecturaIA
+import com.agrosense.app.ui.theme.AgroBorder
+import com.agrosense.app.ui.theme.AgroSurfaceAlt
+import com.agrosense.app.ui.theme.AgroTextPrimary
+import com.agrosense.app.ui.theme.AgroTextSecondary
+import com.agrosense.app.ui.theme.AgroTextTertiary
+import com.agrosense.app.ui.validacion.leerPorcentaje
+import com.agrosense.app.ui.validacion.validarDiagnostico
 import com.agrosense.app.ui.viewmodel.DiagnosticoViewModel
 import com.agrosense.app.ui.viewmodel.ParcelaViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * @param modulo módulo con el que abre el formulario. Dentro del formulario se puede cambiar con
@@ -106,10 +128,6 @@ fun DiagnosticoScreen(
             ).value
 
         } ?: emptyList()
-
-    var mostrarMenuParcelas by remember {
-        mutableStateOf(false)
-    }
 
     var mostrarFormulario by remember {
         mutableStateOf(false)
@@ -201,8 +219,12 @@ fun DiagnosticoScreen(
         }
     }
 
-    // El análisis corre en segundo plano. Cada uno lleva un número: si mientras tanto cambia la
-    // foto, el módulo o se cierra el formulario, el número avanza y el resultado viejo se descarta.
+    var verPasosFoto by remember {
+        mutableStateOf(true)
+    }
+
+    // El modelo tarda en el teléfono; se analiza fuera del hilo de la interfaz. Cada análisis
+    // lleva un número y, si cambia la foto o el módulo mientras corre, su resultado se descarta
     var analizando by remember {
         mutableStateOf(false)
     }
@@ -214,10 +236,6 @@ fun DiagnosticoScreen(
     fun descartarAnalisisEnCurso() {
         numeroAnalisis++
         analizando = false
-    }
-
-    var verPasosFoto by remember {
-        mutableStateOf(true)
     }
 
     // Una foto nueva invalida el análisis anterior, que era de otra imagen
@@ -293,7 +311,6 @@ fun DiagnosticoScreen(
             return
         }
 
-        // Antes corría en el hilo de la interfaz y la pantalla se congelaba mientras tanto
         val modelo = clasificador
         val numero = ++numeroAnalisis
         analizando = true
@@ -304,7 +321,7 @@ fun DiagnosticoScreen(
                 modelo.classify(foto)
             }
 
-            // La foto, el módulo o el formulario cambiaron mientras se analizaba
+            // Mientras corría cambió la foto o el módulo: este resultado ya no aplica
             if (numero != numeroAnalisis) return@launch
 
             analizando = false
@@ -392,230 +409,108 @@ fun DiagnosticoScreen(
         mostrarFormulario = true
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .padding(
-                horizontal = 20.dp,
-                vertical = 18.dp
+    AgroScreen(
+        // CREATE: botón principal fijo abajo
+        bottomBar = {
+            AgroPrimaryButton(
+                text = "Nuevo diagnóstico",
+                icon = R.drawable.ic_camera,
+                onClick = { abrirNuevoDiagnostico() },
+                enabled = parcelaSeleccionadaId != null,
+                modifier = Modifier.fillMaxWidth()
             )
+        }
     ) {
 
-        Row(
-            modifier =
-                Modifier.fillMaxWidth(),
-            verticalAlignment =
-                Alignment.CenterVertically
-        ) {
-
-            BotonRegresar(
-                onClick = onBackClick,
-                modifier = Modifier.padding(end = 12.dp)
-            )
-
-            Text(
-                text = "Diagnósticos",
-                style =
-                    MaterialTheme.typography.titleLarge,
-                fontWeight =
-                    FontWeight.Bold
-            )
-        }
-
-        Spacer(
-            modifier =
-                Modifier.height(8.dp)
+        AgroEncabezado(
+            titulo = "Diagnósticos",
+            descripcion = "Registra y consulta los diagnósticos de tus cultivos.",
+            onBack = onBackClick
         )
 
-        Text(
-            text =
-                "Registra y consulta los diagnósticos de tus cultivos.",
-            style =
-                MaterialTheme.typography.bodyMedium,
-            color =
-                MaterialTheme.colorScheme.onSurfaceVariant
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // SELECTOR DE PARCELA
+        AgroSelectField(
+            label = "Parcela",
+            valueText =
+                parcelas.firstOrNull {
+                    it.id == parcelaSeleccionadaId
+                }?.let {
+                    "${it.nombre} · ${it.cultivo}"
+                } ?: "Seleccionar parcela",
+            options = parcelas,
+            optionLabel = { "${it.nombre} · ${it.cultivo}" },
+            onSelect = { parcelaSeleccionadaId = it.id },
+            leadingIcon = R.drawable.ic_location,
+            enabled = parcelas.isNotEmpty(),
+            modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(
-            modifier =
-                Modifier.height(20.dp)
-        )
-
-        Text(
-            text = "Parcela",
-            style =
-                MaterialTheme.typography.labelMedium,
-            color =
-                MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(
-            modifier =
-                Modifier.height(6.dp)
-        )
-
-        Column {
-
-            OutlinedButton(
-                onClick = {
-                    mostrarMenuParcelas = true
-                },
-                modifier =
-                    Modifier.fillMaxWidth(),
-                shape =
-                    RoundedCornerShape(14.dp)
-            ) {
-
-                val nombre =
-                    parcelas.firstOrNull {
-                        it.id ==
-                                parcelaSeleccionadaId
-                    }?.nombre
-                        ?: "Seleccionar parcela"
-
-                Text(nombre)
-            }
-
-            DropdownMenu(
-                expanded =
-                    mostrarMenuParcelas,
-                onDismissRequest = {
-                    mostrarMenuParcelas = false
-                }
-            ) {
-
-                parcelas.forEach { parcela ->
-
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "${parcela.nombre} · ${parcela.cultivo}"
-                            )
-                        },
-                        onClick = {
-
-                            parcelaSeleccionadaId =
-                                parcela.id
-
-                            mostrarMenuParcelas =
-                                false
-                        }
-                    )
-                }
-            }
-        }
-
-        Spacer(
-            modifier =
-                Modifier.height(16.dp)
-        )
-
-        Button(
-            onClick = {
-                abrirNuevoDiagnostico()
-            },
-            enabled =
-                parcelaSeleccionadaId != null,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp),
-            shape =
-                RoundedCornerShape(14.dp)
-        ) {
-
-            Text("+ Nuevo diagnóstico")
-        }
-
-        Spacer(
-            modifier =
-                Modifier.height(24.dp)
-        )
+        Spacer(modifier = Modifier.height(24.dp))
 
         if (parcelas.isEmpty()) {
 
-            DiagnosticoEmptyCard(
-                titulo =
-                    "Primero agrega una parcela",
-                descripcion =
-                    "Los diagnósticos se guardan dentro de una parcela (tu terreno o potrero). " +
+            AgroEmptyState(
+                icon = R.drawable.ic_location,
+                title = "Primero agrega una parcela",
+                description = "Los diagnósticos se guardan dentro de una parcela (tu terreno o potrero). " +
                         "Registra una y vuelve aquí."
             )
 
-            Spacer(
-                modifier =
-                    Modifier.height(12.dp)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            AgroTonalButton(
+                text = "Ir a Mis parcelas",
+                icon = R.drawable.ic_arrow_forward,
+                onClick = onIrAParcelas,
+                modifier = Modifier.fillMaxWidth()
             )
 
-            Button(
-                onClick = onIrAParcelas,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                shape =
-                    RoundedCornerShape(14.dp)
-            ) {
+        } else if (diagnosticos.isEmpty()) {
 
-                Text("Ir a Mis parcelas")
-            }
-
-        } else if (
-            diagnosticos.isEmpty()
-        ) {
-
-            DiagnosticoEmptyCard(
-                titulo =
-                    "Sin diagnósticos",
-                descripcion =
-                    "Todavía no hay diagnósticos registrados para esta parcela."
+            AgroEmptyState(
+                icon = R.drawable.ic_leaf,
+                title = "Sin diagnósticos",
+                description = "Todavía no hay diagnósticos registrados para esta parcela."
             )
 
         } else {
 
-            Text(
-                text =
+            AgroSectionHeader(
+                title = "Diagnósticos de la parcela",
+                trailing =
                     if (diagnosticos.size == 1) {
-                        "1 diagnóstico registrado"
+                        "1 registrado"
                     } else {
-                        "${diagnosticos.size} diagnósticos registrados"
-                    },
-                style =
-                    MaterialTheme.typography.labelMedium,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                        "${diagnosticos.size} registrados"
+                    }
             )
 
-            Spacer(
-                modifier =
-                    Modifier.height(12.dp)
-            )
+            Spacer(modifier = Modifier.height(12.dp))
 
             LazyColumn(
-                modifier =
-                    Modifier.weight(1f),
-                verticalArrangement =
-                    Arrangement.spacedBy(12.dp)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
             ) {
 
                 items(
-                    items =
-                        diagnosticos,
+                    items = diagnosticos,
                     key = {
                         it.id
                     }
                 ) { diagnostico ->
 
                     DiagnosticoCard(
-                        diagnostico =
-                            diagnostico,
+                        diagnostico = diagnostico,
                         onEditClick = {
                             abrirEditarDiagnostico(
                                 diagnostico
                             )
                         },
                         onDeleteClick = {
-                            diagnosticoAEliminar =
-                                diagnostico
+                            diagnosticoAEliminar = diagnostico
                         }
                     )
                 }
@@ -629,15 +524,13 @@ fun DiagnosticoScreen(
 
     if (mostrarFormulario) {
 
-        AlertDialog(
+        AgroDialogo(
             onDismissRequest = {
-                mostrarFormulario =
-                    false
+                mostrarFormulario = false
                 limpiarFormulario()
             },
 
-            shape =
-                RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(20.dp),
 
             title = {
 
@@ -645,36 +538,23 @@ fun DiagnosticoScreen(
 
                     Text(
                         text =
-                            if (
-                                diagnosticoEditando ==
-                                null
-                            ) {
+                            if (diagnosticoEditando == null) {
                                 "Nuevo diagnóstico"
                             } else {
                                 "Editar diagnóstico"
                             },
-                        fontWeight =
-                            FontWeight.Bold
+                        fontWeight = FontWeight.Bold
                     )
 
                     // Junto al título y no al final del formulario: con foto, el formulario es más
                     // largo que la pantalla y un mensaje abajo quedaría fuera de la vista
                     mensajeError?.let { error ->
 
-                        Text(
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        AgroBanner(
                             text = error,
-                            style =
-                                MaterialTheme
-                                    .typography
-                                    .bodyMedium,
-                            color =
-                                MaterialTheme
-                                    .colorScheme
-                                    .error,
-                            modifier =
-                                Modifier.padding(
-                                    top = 8.dp
-                                )
+                            tone = AgroTone.ERROR
                         )
                     }
                 }
@@ -686,41 +566,15 @@ fun DiagnosticoScreen(
 
                     item {
 
-                        Row(
-                            modifier =
-                                Modifier.fillMaxWidth(),
-                            horizontalArrangement =
-                                Arrangement.spacedBy(
-                                    8.dp
-                                )
-                        ) {
-
-                            listOf(
+                        // MÓDULO: Cultivo | Ganado
+                        AgroSegmented(
+                            options = listOf(
                                 Modulo.CULTIVO to "Cultivo",
                                 Modulo.GANADO to "Ganado"
-                            ).forEach { (opcion, etiqueta) ->
-
-                                if (opcion == moduloActual) {
-                                    Button(
-                                        onClick = {},
-                                        modifier =
-                                            Modifier.weight(1f)
-                                    ) {
-                                        Text(etiqueta)
-                                    }
-                                } else {
-                                    OutlinedButton(
-                                        onClick = {
-                                            cambiarModulo(opcion)
-                                        },
-                                        modifier =
-                                            Modifier.weight(1f)
-                                    ) {
-                                        Text(etiqueta)
-                                    }
-                                }
-                            }
-                        }
+                            ),
+                            selected = moduloActual,
+                            onSelect = { cambiarModulo(it) }
+                        )
 
                         GuiaFoto(
                             modulo = moduloActual,
@@ -728,122 +582,110 @@ fun DiagnosticoScreen(
                             onAlternar = {
                                 verPasosFoto = !verPasosFoto
                             },
-                            modifier =
-                                Modifier.padding(
-                                    top = 10.dp
-                                )
+                            modifier = Modifier.padding(top = 10.dp)
                         )
 
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
-                        )
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                        imagenBitmap?.let {
+                        // FOTO (o un recuadro vacío mientras no hay)
+                        val foto = imagenBitmap
+
+                        if (foto != null) {
 
                             Image(
-                                bitmap =
-                                    it.asImageBitmap(),
-                                contentDescription =
-                                    "Imagen del diagnóstico",
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(180.dp)
-                                        .clip(
-                                            RoundedCornerShape(
-                                                14.dp
-                                            )
-                                        ),
-                                contentScale =
-                                    ContentScale.Crop
+                                bitmap = foto.asImageBitmap(),
+                                contentDescription = "Imagen del diagnóstico",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(180.dp)
+                                    .clip(RoundedCornerShape(14.dp)),
+                                contentScale = ContentScale.Crop
                             )
 
-                            Spacer(
-                                modifier =
-                                    Modifier.height(
-                                        12.dp
-                                    )
-                            )
+                        } else {
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(130.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(AgroSurfaceAlt)
+                                    .border(1.dp, AgroBorder, RoundedCornerShape(14.dp)),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+
+                                AgroIconBadge(
+                                    icon = R.drawable.ic_image
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Text(
+                                    text =
+                                        if (moduloActual == Modulo.GANADO) {
+                                            "Agrega una foto del animal"
+                                        } else {
+                                            "Agrega una foto del cultivo"
+                                        },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = AgroTextSecondary
+                                )
+                            }
                         }
+
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         Row(
-                            modifier =
-                                Modifier.fillMaxWidth(),
-                            horizontalArrangement =
-                                Arrangement.spacedBy(
-                                    8.dp
-                                )
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
 
-                            OutlinedButton(
+                            AgroSecondaryButton(
+                                text = "Cámara",
+                                icon = R.drawable.ic_camera,
                                 onClick = {
-                                    camaraLauncher
-                                        .launch(null)
+                                    camaraLauncher.launch(null)
                                 },
-                                modifier =
-                                    Modifier.weight(1f)
-                            ) {
-                                Text("Cámara")
-                            }
+                                height = 48.dp,
+                                modifier = Modifier.weight(1f)
+                            )
 
-                            OutlinedButton(
+                            AgroSecondaryButton(
+                                text = "Galería",
+                                icon = R.drawable.ic_image,
                                 onClick = {
-                                    galeriaLauncher
-                                        .launch(
-                                            "image/*"
-                                        )
+                                    galeriaLauncher.launch("image/*")
                                 },
-                                modifier =
-                                    Modifier.weight(1f)
-                            ) {
-                                Text("Galería")
-                            }
+                                height = 48.dp,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
 
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
-                        )
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                        Button(
+                        // ANÁLISIS CON IA
+                        AgroTonalButton(
+                            text = if (analizando) "Analizando…" else "Analizar con IA",
+                            icon = R.drawable.ic_sparkle,
                             onClick = {
                                 analizarConIA()
                             },
                             enabled =
                                 clasificador.disponible &&
-                                    imagenBitmap != null &&
-                                    !analizando,
-                            modifier =
-                                Modifier.fillMaxWidth()
-                        ) {
-                            if (analizando) {
-                                CircularProgressIndicator(
-                                    strokeWidth = 2.dp,
-                                    modifier =
-                                        Modifier
-                                            .padding(end = 10.dp)
-                                            .size(18.dp)
-                                )
-                                Text("Analizando…")
-                            } else {
-                                Text("Analizar con IA")
-                            }
-                        }
+                                        imagenBitmap != null &&
+                                        !analizando,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                        if (
-                            !clasificador.disponible
-                        ) {
-                            Text(
-                                text =
-                                    "El modelo no está " +
-                                        "instalado en assets/. " +
-                                        "Puedes llenar el " +
-                                        "diagnóstico a mano.",
-                                style =
-                                    MaterialTheme
-                                        .typography
-                                        .bodySmall
+                        if (!clasificador.disponible) {
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            AgroBanner(
+                                text = "El modelo no está instalado en assets/. " +
+                                        "Puedes llenar el diagnóstico a mano.",
+                                tone = AgroTone.WARNING
                             )
                         }
 
@@ -854,20 +696,11 @@ fun DiagnosticoScreen(
                         // Errores del análisis (sin foto, sin resultado, modelo con fallas)
                         mensajeAnalisis?.let { texto ->
 
-                            Text(
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            AgroBanner(
                                 text = texto,
-                                style =
-                                    MaterialTheme
-                                        .typography
-                                        .bodySmall,
-                                color =
-                                    MaterialTheme
-                                        .colorScheme
-                                        .error,
-                                modifier =
-                                    Modifier.padding(
-                                        top = 8.dp
-                                    )
+                                tone = AgroTone.ERROR
                             )
                         }
 
@@ -876,87 +709,46 @@ fun DiagnosticoScreen(
                             LecturaIA(
                                 modulo = moduloActual,
                                 top3 = top3Detectado,
-                                modifier =
-                                    Modifier
-                                        .padding(
-                                            top = 10.dp
-                                        )
-                                        .bringIntoViewRequester(
-                                            verLecturaIA
-                                        )
+                                modifier = Modifier
+                                    .padding(top = 10.dp)
+                                    .bringIntoViewRequester(verLecturaIA)
                             )
                         }
 
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // DATOS DEL DIAGNÓSTICO
+                        AgroTextField(
+                            value = resultado,
+                            onValueChange = { resultado = it },
+                            label = "Resultado",
+                            placeholder = "Ej. Mancha foliar",
+                            modifier = Modifier.fillMaxWidth()
                         )
 
-                        OutlinedTextField(
-                            value =
-                                resultado,
-                            onValueChange = {
-                                resultado = it
-                            },
-                            label = {
-                                Text(
-                                    "Resultado"
-                                )
-                            },
-                            placeholder = {
-                                Text(
-                                    "Ej. Mancha foliar"
-                                )
-                            },
-                            modifier =
-                                Modifier.fillMaxWidth()
+                        FieldSpacer()
+
+                        AgroTextField(
+                            value = confianza,
+                            onValueChange = { confianza = it },
+                            label = "Confianza (%)",
+                            placeholder = "Ej. 92",
+                            keyboardType = KeyboardType.Number,
+                            modifier = Modifier.fillMaxWidth()
                         )
 
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
-                        )
+                        FieldSpacer()
 
-                        OutlinedTextField(
-                            value =
-                                confianza,
-                            onValueChange = {
-                                confianza = it
-                            },
-                            label = {
-                                Text(
-                                    "Confianza (%)"
-                                )
-                            },
-                            placeholder = {
-                                Text("Ej. 92")
-                            },
-                            modifier =
-                                Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(12.dp)
-                        )
-
-                        OutlinedTextField(
-                            value =
-                                observaciones,
-                            onValueChange = {
-                                observaciones = it
-                            },
-                            label = {
-                                Text(
-                                    "Observaciones"
-                                )
-                            },
+                        AgroTextField(
+                            value = observaciones,
+                            onValueChange = { observaciones = it },
+                            label = "Observaciones",
+                            placeholder = "Notas sobre lo que observaste",
+                            singleLine = false,
                             minLines = 3,
                             maxLines = 5,
-                            modifier =
-                                Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth()
                         )
-
                     }
                 }
             },
@@ -965,6 +757,7 @@ fun DiagnosticoScreen(
 
                 Button(
                     enabled = !guardando,
+                    shape = RoundedCornerShape(12.dp),
                     onClick = {
 
                         val parcelaId =
@@ -1039,6 +832,8 @@ fun DiagnosticoScreen(
                                         )
                                 }
 
+                                Avisos.mostrar(if (actual == null) "Diagnóstico guardado" else "Diagnóstico actualizado")
+
                                 guardando = false
                                 mostrarFormulario = false
                                 limpiarFormulario()
@@ -1048,10 +843,7 @@ fun DiagnosticoScreen(
                 ) {
 
                     Text(
-                        if (
-                            diagnosticoEditando ==
-                            null
-                        ) {
+                        if (diagnosticoEditando == null) {
                             "Guardar"
                         } else {
                             "Actualizar"
@@ -1064,14 +856,10 @@ fun DiagnosticoScreen(
 
                 TextButton(
                     onClick = {
-
-                        mostrarFormulario =
-                            false
-
+                        mostrarFormulario = false
                         limpiarFormulario()
                     }
                 ) {
-
                     Text("Cancelar")
                 }
             }
@@ -1082,25 +870,20 @@ fun DiagnosticoScreen(
     // DELETE
     // ==================================================
 
-    diagnosticoAEliminar?.let {
-            diagnostico ->
+    diagnosticoAEliminar?.let { diagnostico ->
 
-        AlertDialog(
+        AgroDialogo(
             onDismissRequest = {
-                diagnosticoAEliminar =
-                    null
+                diagnosticoAEliminar = null
             },
 
-            shape =
-                RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(20.dp),
 
             title = {
 
                 Text(
-                    text =
-                        "Eliminar diagnóstico",
-                    fontWeight =
-                        FontWeight.Bold
+                    text = "Eliminar diagnóstico",
+                    fontWeight = FontWeight.Bold
                 )
             },
 
@@ -1109,22 +892,15 @@ fun DiagnosticoScreen(
                 Column {
 
                     Text(
-                        text =
-                            "¿Deseas eliminar el diagnóstico \"${NombresClases.legible(diagnostico.resultado)}\"?"
+                        text = "¿Deseas eliminar el diagnóstico \"${NombresClases.legible(diagnostico.resultado)}\"?"
                     )
 
-                    Spacer(
-                        modifier =
-                            Modifier.height(8.dp)
-                    )
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text =
-                            "Esta acción no se puede deshacer.",
-                        style =
-                            MaterialTheme.typography.bodySmall,
-                        color =
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "Esta acción no se puede deshacer.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
@@ -1132,18 +908,19 @@ fun DiagnosticoScreen(
             confirmButton = {
 
                 Button(
+                    shape = RoundedCornerShape(12.dp),
                     onClick = {
+
+                        Avisos.mostrar("Diagnóstico eliminado")
 
                         diagnosticoViewModel
                             .eliminarDiagnostico(
                                 diagnostico
                             )
 
-                        diagnosticoAEliminar =
-                            null
+                        diagnosticoAEliminar = null
                     }
                 ) {
-
                     Text("Eliminar")
                 }
             },
@@ -1152,8 +929,7 @@ fun DiagnosticoScreen(
 
                 TextButton(
                     onClick = {
-                        diagnosticoAEliminar =
-                            null
+                        diagnosticoAEliminar = null
                     }
                 ) {
                     Text("Cancelar")
@@ -1170,165 +946,103 @@ private fun DiagnosticoCard(
     onDeleteClick: () -> Unit
 ) {
 
-    Card(
-        modifier =
-            Modifier.fillMaxWidth(),
-        shape =
-            RoundedCornerShape(16.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    MaterialTheme.colorScheme.surface
-            )
+    // Miniatura de la foto, cargada fuera del hilo de la interfaz
+    val miniatura by produceState<Bitmap?>(
+        initialValue = null,
+        diagnostico.imagenRuta
     ) {
-
-        Column(
-            modifier =
-                Modifier.padding(18.dp)
-        ) {
-
-            Text(
-                text =
-                    when (diagnostico.modulo) {
-                        Modulo.CULTIVO -> "Cultivo"
-                        Modulo.GANADO -> "Ganado"
-                    },
-                style =
-                    MaterialTheme.typography.labelSmall,
-                color =
-                    MaterialTheme.colorScheme.primary
+        value = withContext(Dispatchers.IO) {
+            ImagenStorage.cargarDesdeArchivo(
+                diagnostico.imagenRuta,
+                ImagenStorage.LADO_MINIATURA
             )
-
-            Text(
-                text =
-                    NombresClases.legible(diagnostico.resultado),
-                style =
-                    MaterialTheme.typography.titleMedium,
-                fontWeight =
-                    FontWeight.Bold
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(4.dp)
-            )
-
-            Text(
-                text =
-                    "Confianza: ${
-                        (diagnostico.confianza * 100)
-                            .toInt()
-                    }%",
-                style =
-                    MaterialTheme.typography.bodyMedium,
-                color =
-                    MaterialTheme.colorScheme.primary
-            )
-
-            diagnostico.observaciones
-                ?.takeIf {
-                    it.isNotBlank()
-                }
-                ?.let {
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(10.dp)
-                    )
-
-                    Text(
-                        text = it,
-                        style =
-                            MaterialTheme.typography.bodyMedium
-                    )
-                }
-
-            Spacer(
-                modifier =
-                    Modifier.height(16.dp)
-            )
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.End
-            ) {
-
-                OutlinedButton(
-                    onClick =
-                        onEditClick
-                ) {
-
-                    Text("Editar")
-                }
-
-                Spacer(
-                    modifier =
-                        Modifier.padding(
-                            horizontal = 4.dp
-                        )
-                )
-
-                TextButton(
-                    onClick =
-                        onDeleteClick
-                ) {
-
-                    Text(
-                        text = "Eliminar",
-                        color =
-                            MaterialTheme.colorScheme.error
-                    )
-                }
-            }
         }
     }
-}
 
-@Composable
-private fun DiagnosticoEmptyCard(
-    titulo: String,
-    descripcion: String
-) {
+    val porcentaje =
+        (diagnostico.confianza * 100)
+            .toInt()
+            .coerceIn(0, 100)
 
-    Card(
-        modifier =
-            Modifier.fillMaxWidth(),
-        shape =
-            RoundedCornerShape(16.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    MaterialTheme.colorScheme.surface
-            )
+    AgroCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
 
-        Column(
-            modifier =
-                Modifier.padding(20.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
 
-            Text(
-                text = titulo,
-                style =
-                    MaterialTheme.typography.titleMedium,
-                fontWeight =
-                    FontWeight.Bold
-            )
+            val foto = miniatura
 
-            Spacer(
-                modifier =
-                    Modifier.height(6.dp)
-            )
+            if (foto != null) {
 
-            Text(
-                text = descripcion,
-                style =
-                    MaterialTheme.typography.bodyMedium,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                Image(
+                    bitmap = foto.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                )
+
+            } else {
+
+                AgroIconBadge(
+                    icon = R.drawable.ic_leaf,
+                    size = 56.dp,
+                    iconSize = 24.dp
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+
+                AgroOverline(
+                    text = etiquetaModulo(diagnostico.modulo),
+                    color = AgroTextTertiary
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = NombresClases.legible(diagnostico.resultado),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = AgroTextPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Confianza con color según el nivel (verde, ámbar o rojo)
+            AgroStatusChip(
+                text = "$porcentaje%",
+                tone = tonoConfianza(porcentaje)
             )
         }
+
+        diagnostico.observaciones
+            ?.takeIf { it.isNotBlank() }
+            ?.let {
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AgroTextSecondary
+                )
+            }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        AgroCardActions(
+            onEditClick = onEditClick,
+            onDeleteClick = onDeleteClick
+        )
     }
 }
