@@ -7,7 +7,8 @@ import androidx.compose.ui.graphics.Color
 
 private val AgroSenseLightColors = lightColorScheme(
 
-    primary = AgroGreen,
+    // Un tono más oscuro que AgroGreen para que el texto blanco de los botones se lea bien (contraste 4.9:1)
+    primary = AgroGreenPressed,
     onPrimary = Color.White,
 
     primaryContainer = AgroGreenSoft,
