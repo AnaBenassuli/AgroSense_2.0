@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.agrosense.app.ui.components.AgroDialogo
+import com.agrosense.app.ui.components.Avisos
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -284,6 +285,8 @@ fun HistorialScreen(
         ConfirmarEliminacion(
             diagnostico = diagnostico,
             onConfirmar = {
+                Avisos.mostrar("Diagnóstico eliminado")
+
                 diagnosticoViewModel.eliminarDiagnostico(diagnostico)
                 diagnosticoAEliminar = null
             },
