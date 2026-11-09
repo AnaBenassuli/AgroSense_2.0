@@ -1,5 +1,6 @@
 package com.agrosense.app.ui.screen
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +26,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -37,8 +39,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.agrosense.app.R
 import com.agrosense.app.ui.theme.AgroBorder
 import com.agrosense.app.ui.theme.AgroGreen
 import com.agrosense.app.ui.theme.AgroGreenDark
@@ -142,6 +146,26 @@ fun HomeScreen(
                     modifier = Modifier.padding(20.dp)
                 ) {
 
+                    // Icono de cámara en un cuadro verde
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(AgroGreen),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_camera),
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Spacer(
+                        modifier = Modifier.height(14.dp)
+                    )
+
                     Text(
                         text = "Diagnóstico rápido",
                         style = MaterialTheme.typography.titleLarge,
@@ -233,25 +257,28 @@ fun HomeScreen(
             )
 
             ToolCard(
+                icon = R.drawable.ic_location,
                 title = "Mis parcelas",
                 description = "Consulta y administra tus cultivos.",
                 onClick = onParcelasClick
             )
 
             ToolCard(
+                icon = R.drawable.ic_history,
                 title = "Historial",
                 description = "Revisa diagnósticos anteriores.",
                 onClick = onHistorialClick
             )
 
             ToolCard(
+                icon = R.drawable.ic_event,
                 title = "Actividades",
                 description = "Registra riegos, tratamientos y labores.",
                 onClick = onActividadesClick
             )
 
-            // NUEVA HERRAMIENTA
             ToolCard(
+                icon = R.drawable.ic_person,
                 title = "Mi perfil",
                 description = "Consulta y edita los datos de tu cuenta.",
                 onClick = onPerfilClick
@@ -612,8 +639,10 @@ private fun SummaryCard(
     }
 }
 
+/** Tarjeta de herramienta: icono a la izquierda, texto al centro y flechita a la derecha. */
 @Composable
 private fun ToolCard(
+    @DrawableRes icon: Int,
     title: String,
     description: String,
     onClick: () -> Unit
@@ -630,24 +659,61 @@ private fun ToolCard(
         )
     ) {
 
-        Column(
-            modifier = Modifier.padding(18.dp)
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
 
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+            // Icono sobre un cuadro verde tenue
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(AgroGreenSoft),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    tint = AgroGreen,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
 
             Spacer(
-                modifier = Modifier.height(4.dp)
+                modifier = Modifier.width(14.dp)
             )
 
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(
+                    modifier = Modifier.height(2.dp)
+                )
+
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(
+                modifier = Modifier.width(8.dp)
+            )
+
+            Icon(
+                painter = painterResource(R.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = AgroTextTertiary,
+                modifier = Modifier.size(22.dp)
             )
         }
     }

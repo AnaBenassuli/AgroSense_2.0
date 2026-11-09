@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.agrosense.app.ui.components.AgroDialogo
+import com.agrosense.app.ui.components.Avisos
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -375,6 +376,8 @@ fun ParcelaScreen(
                                 )
                             }
 
+                            Avisos.mostrar(if (parcelaActual == null) "Parcela guardada" else "Parcela actualizada")
+
                             mostrarFormulario = false
                             limpiarFormulario()
                         }
@@ -471,6 +474,7 @@ fun ParcelaScreen(
                 Button(
                     onClick = {
 
+                        Avisos.mostrar("Parcela eliminada")
                         viewModel.eliminarParcela(parcela)
 
                         parcelaAEliminar = null

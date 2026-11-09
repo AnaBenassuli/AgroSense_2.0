@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.agrosense.app.ui.components.AgroDialogo
+import com.agrosense.app.ui.components.Avisos
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -994,6 +995,8 @@ fun DiagnosticoScreen(
                                         )
                                 }
 
+                                Avisos.mostrar(if (actual == null) "Diagnóstico guardado" else "Diagnóstico actualizado")
+
                                 guardando = false
                                 mostrarFormulario = false
                                 limpiarFormulario()
@@ -1088,6 +1091,7 @@ fun DiagnosticoScreen(
 
                 Button(
                     onClick = {
+                        Avisos.mostrar("Diagnóstico eliminado")
 
                         diagnosticoViewModel
                             .eliminarDiagnostico(
