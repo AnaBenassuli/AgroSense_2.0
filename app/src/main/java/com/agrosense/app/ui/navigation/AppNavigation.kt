@@ -135,7 +135,7 @@ fun AppNavigation() {
         startDestination = Screen.Login.route
     ) {
 
-        // LOGIN
+        // LOGIN (el registro está dentro de AuthGate, en la misma pantalla)
         composable(Screen.Login.route) {
 
             val estadoAcceso by usuarioViewModel
@@ -165,13 +165,6 @@ fun AppNavigation() {
                 onRegistrar = usuarioViewModel::registrarCuenta,
                 onLimpiarError = usuarioViewModel::limpiarErrorAcceso
             )
-        }
-
-        // REGISTRO
-        composable(Screen.Register.route) {
-
-            // El registro actualmente está
-            // integrado dentro de AuthGate.
         }
 
         // HOME

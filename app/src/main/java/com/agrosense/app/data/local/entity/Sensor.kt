@@ -5,6 +5,11 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+/**
+ * Lecturas de humedad y temperatura de una parcela. Ninguna pantalla las usa todavía (se pensó
+ * para sensores en campo); la tabla se queda porque ya existe en las bases instaladas y quitarla
+ * exigiría una migración de Room. El ViewModel y el repositorio sin uso se borraron.
+ */
 @Entity(
     tableName = "sensores",
     foreignKeys = [
